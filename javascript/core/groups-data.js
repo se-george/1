@@ -41,7 +41,7 @@ wed: { transform: 'translate(0,1828)', slots: [
       sun: ['x', 'x', 'x'],
       tue: ['x', 'x', 'x', 'x'],
       wed: [
-        { cls: 'm l', href: './Introduction to Computing/Lecture/Problem Solving.pdf' },
+{ cls: 'm l', href: './Introduction to Computing/Lecture/Problem Solving.pdf' },
         'x',
       ],
     },
@@ -55,28 +55,32 @@ wed: { transform: 'translate(0,1828)', slots: [
 
     5: {
       sat: ['o', 'o', 'o'],
-      sun: ['o', { cls: 'm l', href: './Business/Lecture/04.pdf' }, 'o'],
+      sun: ['o', 
+{ cls: 'm l', href: './Business/Lecture/04.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
 
     4: {
       sat: ['o', 'o', 'o'],
-      sun: ['o', { cls: 'm l', href: './Business/Lecture/03.pdf' }, 'o'],
+      sun: ['o', 
+{ cls: 'm l', href: './Business/Lecture/03.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
 
     3: {
       sat: ['o', 'o', 'o'],
-      sun: ['o', { cls: 'm l', href: './Business/Lecture/02.pdf' }, 'o'],
+      sun: ['o', 
+{ cls: 'm l', href: './Business/Lecture/02.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
 
     2: {
       sat: ['o', 'o', 'o'],
-      sun: ['o', { cls: 'm l', href: './Business/Lecture/01.pdf' }, 'o'],
+      sun: ['o', 
+{ cls: 'm l', href: './Business/Lecture/01.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
