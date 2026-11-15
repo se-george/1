@@ -19,11 +19,9 @@ wed: { transform: 'translate(0,1828)', slots: [
 { x: 680.349, y: 0, w: 148.764, h: 416.255 }]},},
 9: {
      sat: [
-[{ cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
-{ cls: 'm q', href: './Precalculus/Lecture/Quiz1.pdf' },
-{ cls:'m a',href:'./Precalculus/Lecture/Recap.pdf' },],
-{ cls:'m l',href:'./Introduction to Computing/Lecture/c_overview-am.pdf' },
-{ cls:'m l',href:'./Biochemistry/Lecture/07 & 8.pdf'},],
+{ cls:'m l',href:'./Academic English/Lecture/???.pdf' },
+{ cls:'m l',href:'./Biochemistry/Lecture/c_overview-am.pdf' },
+{ cls:'m s',href:'./Biochemistry/Section/07 & 8.pdf'},],
       sun: ['o', 
 {cls:'m l',href:'./Business/Lecture/ch. 5.pdf'}
 , 'o'],
@@ -89,7 +87,11 @@ wed: { transform: 'translate(0,1828)', slots: [
     },
 
     1: {
-      sat: ['o', 'o', 'o'],
+      sat: [
+[{ cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
+{ cls: 'm q', href: './Precalculus/Lecture/Quiz1.pdf' },
+{ cls:'m a',href:'./Precalculus/Lecture/Recap.pdf' },],
+'o', 'o',],
       sun: ['o', 'o', 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
