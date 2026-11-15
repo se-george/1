@@ -13,7 +13,6 @@ import { checkForUpdates } from './javascript/core/update-checker.js';
 import { smartOpen } from './javascript/ui/pdf-viewer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // الاستماع للضغط على مستطيلات الـ SVG
     const svgContainer = document.getElementById('main-svg');
     if (svgContainer) {
         svgContainer.addEventListener('click', (e) => {
@@ -38,7 +37,6 @@ if (updateBtn) {
 // ---------- تحميل آخر جروب تلقائياً ----------
 function autoLoadLastGroup() {
     const preloadDone = localStorage.getItem('preload_done');
-
     if (!preloadDone) {
         console.log('⏭️ أول زيارة - تخطي التحميل التلقائي');
         return;
@@ -49,16 +47,14 @@ function autoLoadLastGroup() {
     if (savedGroup && /^[A-F]$/.test(savedGroup)) {
         console.log(`🚀 تحميل آخر جروب تلقائياً: ${savedGroup}`);
         const groupSelectionScreen = document.getElementById('group-selection-screen');
-        if (groupSelectionScreen) {
-            groupSelectionScreen.style.display = 'none';
-        }
+        if (groupSelectionScreen) groupSelectionScreen.style.display = 'none';
         initializeGroup(savedGroup);
     } else {
         console.log('📋 لا يوجد جروب محفوظ - عرض شاشة الاختيار');
     }
 }
 
-// ---------- مراقب تغيير Z-Index (إعادة تعيين التكبير) ----------
+// ---------- مراقب تغيير Z-Index ----------
 function observeZIndexChanges() {
     let zoomTimeout;
     const shouldTriggerReset = (el) => {
@@ -84,7 +80,6 @@ function observeZIndexChanges() {
                     if (shouldTriggerReset(target)) {
                         clearTimeout(zoomTimeout);
                         zoomTimeout = setTimeout(() => {
-                            console.log('🧠 تغيير z-index / ظهور شاشة → Reset Zoom');
                             resetBrowserZoom();
                         }, 80);
                         break;
@@ -96,7 +91,6 @@ function observeZIndexChanges() {
                     if (node.nodeType === 1 && shouldTriggerReset(node)) {
                         clearTimeout(zoomTimeout);
                         zoomTimeout = setTimeout(() => {
-                            console.log('🧠 إضافة شاشة جديدة → Reset Zoom');
                             resetBrowserZoom();
                         }, 80);
                     }
@@ -111,13 +105,29 @@ function observeZIndexChanges() {
         childList: true,
         subtree: true
     });
-    console.log('✅ مراقبة z-index وظهور/اختفاء الشاشات مفعّلة');
 }
 
 // ---------- التهيئة عند تحميل DOM ----------
 document.addEventListener('DOMContentLoaded', () => {
     // ══════════════════════════════════════════════════════
-    // 🆕 تهيئة سويتش الـ Hover — دايماً (قبل أي شرط)
+    // 🆕 PWA MODE: احذف popup الاختيار + المعاينة من الصفحة
+    // ══════════════════════════════════════════════════════
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+                  window.matchMedia('(display-mode: fullscreen)').matches ||
+                  window.matchMedia('(display-mode: minimal-ui)').matches ||
+                  window.navigator.standalone === true;
+
+    if (isPWA) {
+        // الملفات هتتفتح مباشرة بـ "Open with" بتاع الجهاز (بدون popup ولا preview)
+        ['open-method-popup', 'pdf-preview-popup'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        });
+        console.log('📱 PWA mode → removed open-method popup & PDF preview');
+    }
+
+    // ══════════════════════════════════════════════════════
+    // تهيئة سويتش الـ Hover
     // ══════════════════════════════════════════════════════
     const hoverSwitch = document.getElementById('js-toggle');
     if (hoverSwitch) {
@@ -137,7 +147,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('disable_hover', 'true');
                 console.log('🚫 تم إيقاف الـ Hover');
 
-                // 🆕 تنظيف أي hover نشط حالياً
                 import('./javascript/features/svg-processor.js')
                     .then(({ cleanupHover }) => {
                         if (typeof cleanupHover === 'function') cleanupHover();
@@ -153,10 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const preloadDone = localStorage.getItem('preload_done');
 
     if (!preloadDone) {
-        // أول زيارة: نشغل نظام preload فقط
         initPreloadSystem();
     } else {
-        // زيارة سابقة: نكمل التحميل الطبيعي
         autoLoadLastGroup();
         setupBackButton();
         preventInteractionWhenHidden();
@@ -165,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         observeZIndexChanges();
         updateWelcomeMessages();
 
-        // منع القائمة اليمنى على الصور
         document.addEventListener('contextmenu', (e) => {
             const target = e.target;
             if (target.tagName === 'image' ||
@@ -197,7 +203,6 @@ function showPWAInstallButton() {
     }
     installBtn.style.display = 'inline-flex';
 
-    // ربط الـ click مرة واحدة بس
     if (!installBtn.dataset.bound) {
         installBtn.dataset.bound = 'true';
         installBtn.addEventListener('click', async () => {
@@ -212,7 +217,6 @@ function showPWAInstallButton() {
                 const result = await promptEvent.userChoice;
                 console.log('📲 نتيجة التثبيت:', result.outcome);
                 if (result.outcome !== 'accepted') {
-                    // لو رفض، نخلي الزر يرجع بعد شوية
                     setTimeout(() => {
                         const btn = document.getElementById('pwa-install-btn');
                         if (btn && !window.matchMedia('(display-mode: standalone)').matches) {
@@ -229,7 +233,6 @@ function showPWAInstallButton() {
     }
 }
 
-// 1) استقبال الحدث
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -238,7 +241,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     showPWAInstallButton();
 });
 
-// 2) الـ inline script في index.html بيبعت الحدث ده كـ fallback
 window.addEventListener('pwaInstallReady', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -246,7 +248,6 @@ window.addEventListener('pwaInstallReady', () => {
     }
 });
 
-// 3) لو الحدث اتطلق قبل ما الملف يتحمّل
 document.addEventListener('DOMContentLoaded', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -254,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 4) بعد التثبيت
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     window._pwaPrompt = null;
@@ -263,7 +263,6 @@ window.addEventListener('appinstalled', () => {
     console.log('🎉 تم تثبيت التطبيق بنجاح');
 });
 
-// 5) لو التطبيق مفتوح في وضع standalone (متثبت بالفعل) → نخفي الزر
 if (window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true) {
     const installBtn = document.getElementById('pwa-install-btn');
