@@ -253,6 +253,217 @@ export function closeOpenOptions() {
     }
 }
 
+// ---------- طرق الفتح (مُصححة ومُحسنة) ----------
+
+// 1. الفتح العارض الداخلي المدمج
+export async function openWithMozilla(item) {
+    if (!item) {
+        console.error('❌ openWithMozilla: item is null');
+        return;
+    }
+
+    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const scrollContainer = document.getElementById('scroll-container');
+    const scrollPosition = scrollContainer ? scrollContainer.scrollLeft : 0;
+    pushNavigationState(NAV_STATE.PDF_VIEW, {
+        path: item.path,
+        scrollPosition: scrollPosition,
+        viewer: 'mozilla'
+    });
+
+    const overlay = document.getElementById("pdf-overlay");
+    const pdfViewer = document.getElementById("pdfFrame");
+    const toolbar = document.getElementById('toolbar');
+    const eyeBtn = document.getElementById('pdf-eye-draggable');
+
+    if (!overlay || !pdfViewer) {
+        console.error('❌ عناصر عارض PDF غير موجودة');
+        return;
+    }
+
+    overlay.classList.remove("hidden");
+    overlay.style.display = 'flex';
+
+    if (toolbar && eyeBtn) {
+        toolbar.style.display = 'flex';
+        eyeBtn.classList.remove('active');
+        eyeBtn.title = 'إخفاء شريط الأدوات';
+        isPdfToolbarHidden = false;
+    }
+
+    resetBrowserZoom();
+
+    try {
+        // 1. جلب الملف كـ Blob لتجاوز قيود CORS بالكامل
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('فشل تحميل الملف من السيرفر');
+        const blob = await response.blob();
+
+        // 2. مسح الـ Blob القديم إن وجد لمنع تسريب الذاكرة (Memory Leak)
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+        }
+
+        // 3. إنشاء Blob URL محلي مؤقت
+        currentBlobUrl = URL.createObjectURL(blob);
+
+        // 4. تمرير الـ Blob URL المحلي لعارض موزيلا داخل الـ iframe
+        pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(currentBlobUrl)}#zoom=page-fit`;
+
+    } catch (error) {
+        console.error('❌ خطأ أثناء إنشاء الـ Blob URL، العودة للرابط المباشر:', error);
+        // كخيار احتياطي إذا فشل الـ fetch لأي سبب
+        pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}#zoom=page-fit`;
+    }
+
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
+    closeOpenOptions();
+    console.log('📄 تم فتح المستند داخل Mozilla Viewer باستخدام Blob URL المحلي');
+}
+
+// 2. الفتح عبر Google Drive
+export function openWithDrive(item) {
+    if (!item) {
+        console.error('❌ openWithDrive: item is null');
+        return;
+    }
+
+    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const driveUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
+    window.open(driveUrl, '_blank', 'noopener,noreferrer');
+
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
+    closeOpenOptions();
+    console.log('💾 فتح بـ Google Drive:', driveUrl);
+}
+
+// 3. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
+export function openWithBrowser(item) {
+    if (!item) {
+        console.error('❌ openWithBrowser: item is null');
+        return;
+    }
+
+    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    
+    // استخدام عنصر <a> محاكى لضمان عدم حظر النوافذ المنبثقة
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
+    closeOpenOptions();
+    console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
+}
+
+export function toggleMozillaToolbar() {
+    const pdfOverlay = document.getElementById('pdf-overlay');
+    const expandBtn = document.getElementById('expand-toolbar-btn');
+
+    if (!pdfOverlay || !expandBtn) return;
+
+    isToolbarExpanded = !isToolbarExpanded;
+
+    if (isToolbarExpanded) {
+        pdfOverlay.classList.add('fullscreen-mode');
+        expandBtn.innerHTML = '🔽';
+        expandBtn.title = 'إظهار الأزرار';
+    } else {
+        pdfOverlay.classList.remove('fullscreen-mode');
+        expandBtn.innerHTML = '🔼';
+        expandBtn.title = 'إخفاء الأزرار';
+    }
+}
+
+// دالة لتبديل إخفاء/إظهار شريط أدوات PDF
+export function togglePdfToolbar() {
+    const toolbar = document.getElementById('toolbar');
+    const eyeBtn = document.getElementById('pdf-eye-draggable');
+
+    if (!toolbar || !eyeBtn) return;
+
+    isPdfToolbarHidden = !isPdfToolbarHidden;
+
+    if (isPdfToolbarHidden) {
+        toolbar.style.display = 'none';
+        eyeBtn.classList.add('active');
+        eyeBtn.title = 'إظهار شريط الأدوات';
+    } else {
+        toolbar.style.display = 'flex';
+        eyeBtn.classList.remove('active');
+        eyeBtn.title = 'إخفاء شريط الأدوات';
+    }
+}
+
+// دوال السحب للزر
+function startDrag(e) {
+    const eyeBtn = document.getElementById('pdf-eye-draggable');
+    if (!eyeBtn) return;
+
+    dragActive = true;
+    eyeBtn.classList.add('dragging');
+
+    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+    startX = clientX;
+    startY = clientY;
+
+    const rect = eyeBtn.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    e.preventDefault();
+}
+
+function onDrag(e) {
+    if (!dragActive) return;
+
+    const eyeBtn = document.getElementById('pdf-eye-draggable');
+    if (!eyeBtn) return;
+
+    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+    const deltaX = clientX - startX;
+    const deltaY = clientY - startY;
+
+    eyeBtn.style.left = (initialLeft + deltaX) + 'px';
+    eyeBtn.style.top = (initialTop + deltaY) + 'px';
+    eyeBtn.style.right = 'auto';
+
+    e.preventDefault();
+}
+
+function stopDrag(e) {
+    if (!dragActive) return;
+
+    const eyeBtn = document.getElementById('pdf-eye-draggable');
+    if (eyeBtn) {
+        eyeBtn.classList.remove('dragging');
+    }
+
+    dragActive = false;
+}
+
+export function smartOpen(item) {
+    if (!item || !item.path) return;
+    showOpenOptions(item);
+}
+
 // ---------- تهيئة مستمعات الأحداث ----------
 export function initPDFViewer() {
 
