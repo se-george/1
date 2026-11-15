@@ -37,7 +37,10 @@ export function cleanupHover() {
 // ---------- بدء تأثير الهوفر ----------
 export function startHover() {
     if (!interactionEnabled || this.classList.contains('list-item')) return;
-    if (document.body.classList.contains('disable-hover')) return; 
+
+    // 🆕 فحص سويتش الـ Hover - لو متقفل، لا تعمل أي تأثير
+    if (document.body.classList.contains('disable-hover')) return;
+
     const mainSvg = document.getElementById('main-svg');
     const clipDefs = mainSvg?.querySelector('defs');
     if (!mainSvg || !clipDefs) return;
@@ -51,7 +54,6 @@ export function startHover() {
     const rH = parseFloat(rect.getAttribute('height')) || rect.getBBox().height;
     const cum = getCumulativeTranslate(rect);
 
-    // ✅ إصلاح NaN: إضافة || 0 لضمان قيمة رقمية دائماً
     const absX = (parseFloat(rect.getAttribute('x')) || 0) + cum.x;
     const absY = (parseFloat(rect.getAttribute('y')) || 0) + cum.y;
     const centerX = absX + rW / 2;
@@ -166,7 +168,6 @@ export function processRect(r) {
 
     const w = parseFloat(r.getAttribute('width')) || r.getBBox().width;
 
-    // ✅ إصلاح NaN: إضافة || 0 لضمان قيمة رقمية دائماً
     const x = parseFloat(r.getAttribute('x')) || 0;
     const y = parseFloat(r.getAttribute('y')) || 0;
 
@@ -227,6 +228,7 @@ export function processRect(r) {
     if (scrollContainer) {
         r.addEventListener('touchstart', function (e) {
             if (!interactionEnabled) return;
+            if (document.body.classList.contains('disable-hover')) return;  // 🆕
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
             startHover.call(this);
@@ -303,7 +305,6 @@ export function scan() {
             });
             if (hasNewElements) {
                 console.log('🔄 تم اكتشاف عناصر جديدة - تحديث viewBox');
-                // ✅ إصلاح: الاستيراد من group-loader.js وليس wood-interface.js
                 import('../core/group-loader.js').then(({ updateDynamicSizes }) => {
                     updateDynamicSizes();
                 });
