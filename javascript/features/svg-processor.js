@@ -153,9 +153,6 @@ export function startHover() {
 export function processRect(r) {
     if (r.hasAttribute('data-processed')) return;
 
-    if (r.classList.contains('w')) r.setAttribute('width', '113.5');
-    if (r.classList.contains('hw')) r.setAttribute('width', '56.75');
-
     let href = r.getAttribute('data-href') || '';
     if (href && href !== '#' && !href.startsWith('http')) {
         href = `${RAW_CONTENT_BASE}${href}`;
