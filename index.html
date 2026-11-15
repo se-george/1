@@ -9,6 +9,7 @@
   <meta property="og:url" content="https://se-george.github.io/CS26/">
   <meta property="og:title" content="CS26 | خريطة الكلية التفاعلية">
   <meta property="og:description" content="خريطة تفاعلية لعرض محاضرات وسكاشن الفرقة الأولي - الفصل الدراسي الأول">
+  <meta property="og:image" content="https://se-george.github.io/CS26/image/0.webp">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:locale" content="ar_AR">
@@ -43,6 +44,13 @@
   <link rel="modulepreload" href="javascript/core/state.js" crossorigin="anonymous">
   <link rel="modulepreload" href="javascript/features/svg-processor.js" crossorigin="anonymous">
   <link rel="modulepreload" href="javascript/ui/pdf-viewer.js" crossorigin="anonymous">
+
+  <!-- Icons -->
+  <link rel="icon" type="image/png" href="image/0.png">
+  <link rel="apple-touch-icon" href="image/0.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="image/0.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="image/0.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="image/0.png">
 
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
@@ -79,7 +87,7 @@
 <body>
 <!-- ===== iOS Install Banner ===== -->
 <div id="ios-install-banner">
-  <img src="image/0.webp" alt="أيقونة التطبيق">
+  <img src="image/0.png" alt="أيقونة التطبيق">
   <div class="banner-text">
     <strong>أضف التطبيق للشاشة الرئيسية</strong>
     <span>اضغط <span class="share-icon">⬆️</span> ثم "Add to Home Screen"</span>
@@ -214,6 +222,7 @@
 <!-- شاشة اختيار المجموعة -->
 <div id="group-selection-screen">
   <div id="group-selection-content">
+    <img id="main-logo" src="image/0.png" alt="شعار الكلية" />
     <h1>اختر مجموعتك</h1>
     <div id="group-buttons">
       <button class="group-btn" data-group="A"><span class="group-letter">A</span><span class="group-label">Group A</span></button>
@@ -253,6 +262,7 @@
 <!-- شاشة التحميل -->
 <div id="loading-overlay">
   <div id="loading-content">
+    <img id="splash-image" src="image/0.png" alt="شعار التحميل" />
     <h1 id="project-loading-title">جاري التحميل...</h1>
     <div id="loader-lights">
       <div class="light-bulb" id="bulb-1"></div>
@@ -312,45 +322,29 @@
     <g id="upper-wood-layer" style="pointer-events: none; z-index: 3;">
       <image data-src="image/Upper_wood.webp" x="0" y="0" width="1024" height="250" style="pointer-events: none;" />
     </g>
-
-    <!-- الأزرار الثابتة المنظمة -->
     <g id="fixed-controls-layer">
-      <!-- زر تغيير المجموعة -->
       <g id="change-group-btn" style="cursor: pointer;">
-        <rect x="120" y="40" width="240" height="45" rx="10"/>
-        <text id="group-btn-text" x="240" y="62" text-anchor="middle" dominant-baseline="middle">Change Group 🔄</text>
+        <rect x="120" y="100" width="250" height="50" rx="10"/>
+        <text id="group-btn-text" x="245" y="130" text-anchor="middle" dominant-baseline="middle">Change Group 🔄</text>
       </g>
-
-      <!-- زر اللعبة / Preload في المنتصف تماماً -->
       <g id="preload-btn" style="cursor: pointer;">
-        <rect x="392" y="40" width="240" height="45" rx="10"/>
-        <text x="512" y="62" text-anchor="middle" dominant-baseline="middle">Loading screen 🎮</text>
+        <rect x="387" y="100" width="250" height="50" rx="10"/>
+        <text x="512" y="130" text-anchor="middle" dominant-baseline="middle">Loading screen 🎮</text>
       </g>
-
-      <!-- زر مسح الكاش -->
       <g id="reset-btn" style="cursor: pointer;">
-        <rect x="664" y="40" width="240" height="45" rx="10"/>
-        <text id="reset-btn-text" x="784" y="62" text-anchor="middle" dominant-baseline="middle">Clear cache 🗑</text>
+        <rect x="654" y="100" width="250" height="50" rx="10"/>
+        <text id="reset-btn-text" x="779" y="130" text-anchor="middle" dominant-baseline="middle">Clear cache 🗑</text>
       </g>
-
-      <!-- زر التثبيت PWA (يظهر عند توفر الحدث تلقائياً) -->
-      <g id="pwa-install-btn" style="cursor: pointer; display: none;">
-        <rect x="392" y="95" width="240" height="45" rx="10" fill="#ff9800"/>
-        <text x="512" y="117" text-anchor="middle" dominant-baseline="middle" fill="#000">📱 تثبيت التطبيق</text>
-      </g>
-
-      <!-- زر الرجوع للخريطة -->
       <g id="back-button-group" style="cursor: pointer;">
-        <rect id="back-btn" x="112" y="150" width="800" height="65" rx="15" />
-        <text x="512" y="182" id="back-btn-text" text-anchor="middle" dominant-baseline="middle">➡️ إلى الخريطة ➡️</text>
+        <rect id="back-btn" x="112" y="160" width="800" height="70" rx="15" />
+        <text x="512" y="195" id="back-btn-text" text-anchor="middle" dominant-baseline="middle">➡️ إلى الخريطة ➡️</text>
       </g>
-
-      <!-- زر فحص التحديثات -->
-      <g transform="translate(362, 225)" style="cursor: pointer;" id="check-update-btn">
-        <rect x="0" y="0" width="300" height="40" rx="8" fill="#ffca28"/>
-        <text x="150" y="20" text-anchor="middle" dominant-baseline="middle" fill="#000" font-weight="bold" font-size="16px">🔄 التحقق من وجود تحديثات</text>
-      </g>
-    </g>
+      <g class="update-section" style="text-align: center; margin: 20px;">
+    <button id="check-update-btn" style="padding: 10px 20px; background-color: #ffca28; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        🔄 التحقق من وجود تحديثات
+    </button>
+    <p id="update-status-text" style="margin-top: 10px; font-size: 14px; color: #555;"></p>
+  </g>  </g>
   </svg>
 </div>
 <!-- ======================== نهاية عناصر الواجهة ======================== -->
