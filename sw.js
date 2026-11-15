@@ -10,7 +10,6 @@ const urlsToCache = [
    './javascript/core/navigation.js',
    './javascript/core/group-loader.js',
    './javascript/core/state.js',
-   './javascript/core/day-template.js',
    './javascript/core/svg-generator.js',
    './groups-data.js',
    './javascript/ui/pdf-viewer.js',
