@@ -5,7 +5,7 @@ import { setCurrentGroup, setCurrentFolder, setGlobalFileTree, globalFileTree, c
 
 // ✅ توليد SVG من البيانات (بدلاً من fetch لملف SVG)
 import { generateGroupSVG } from './svg-generator.js';
-import { GROUP_DATA } from '.../groups-data.js';
+import { GROUP_DATA } from '../groups-data.js';
 
 // ---------- متغيرات داخلية للتحميل ----------
 let imageUrlsToLoad = [];
