@@ -1,321 +1,17 @@
-// ============================================
-// pdf-viewer.js - معاينة PDF وفتحه بطرق متعددة
-// + PWA mode: فتح بـ "Open with" + منع التنزيل المكرر
-// ============================================
-
 import { RAW_CONTENT_BASE, NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState } from '../core/navigation.js';
 import { resetBrowserZoom } from '../core/utils.js';
 
 export let currentPreviewItem = null;
 export let isToolbarExpanded = false;
-export let isPdfToolbarHidden = false;
+export let isPdfToolbarHidden = false; // حالة إخفاء شريط أدوات PDF
 
-// متغيرات السحب لزر العين
+// متغيرات السحب للزر
 let dragActive = false;
 let startX, startY, initialLeft, initialTop;
 let currentBlobUrl = null;
 
-// ══════════════════════════════════════════════════════════════
-// 🆕 Tracking للتنزيلات + Cache
-// ══════════════════════════════════════════════════════════════
-
-const DOWNLOADED_KEY = 'pwa_downloaded_files_v1';
-const DOWNLOAD_TTL_DAYS = 30;
-const PDF_CACHE_NAME = 'pdf-downloads-v1';
-
-function getDownloadedMap() {
-    try {
-        return JSON.parse(localStorage.getItem(DOWNLOADED_KEY) || '{}');
-    } catch { return {}; }
-}
-
-function isAlreadyDownloaded(path) {
-    const map = getDownloadedMap();
-    const t = map[path];
-    if (!t) return false;
-    const ageDays = (Date.now() - t) / 86400000;
-    if (ageDays > DOWNLOAD_TTL_DAYS) {
-        delete map[path];
-        localStorage.setItem(DOWNLOADED_KEY, JSON.stringify(map));
-        return false;
-    }
-    return true;
-}
-
-function markAsDownloaded(path) {
-    const map = getDownloadedMap();
-    map[path] = Date.now();
-    localStorage.setItem(DOWNLOADED_KEY, JSON.stringify(map));
-}
-
-// debounce للضغط السريع المكرر
-let _lastClick = { path: '', time: 0 };
-function isRapidDoubleClick(path) {
-    const now = Date.now();
-    const isRapid = path === _lastClick.path && (now - _lastClick.time) < 2000;
-    _lastClick = { path, time: now };
-    return isRapid;
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🆕 Toast UI (بدون أي HTML مطلوب)
-// ══════════════════════════════════════════════════════════════
-
-function showPwaToast(message, action = null) {
-    document.querySelectorAll('.pwa-toast').forEach(t => t.remove());
-
-    const toast = document.createElement('div');
-    toast.className = 'pwa-toast';
-    toast.style.cssText = `
-        position: fixed; bottom: 30px; left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: rgba(20,20,20,0.97); color: #ffcc00;
-        padding: 14px 22px; border-radius: 14px;
-        font-size: 14px; font-weight: 600;
-        z-index: 99999; max-width: 90vw;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,204,0,0.3);
-        text-align: center; opacity: 0;
-        transition: opacity 0.3s, transform 0.3s;
-        direction: rtl; font-family: 'Segoe UI', Tahoma, sans-serif;
-        display: flex; align-items: center; gap: 12px; justify-content: center;
-    `;
-
-    const textSpan = document.createElement('span');
-    textSpan.textContent = message;
-    toast.appendChild(textSpan);
-
-    const closeToast = () => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(-50%) translateY(20px)';
-        setTimeout(() => toast.remove(), 300);
-    };
-
-    if (action) {
-        const btn = document.createElement('button');
-        btn.textContent = action.label;
-        btn.style.cssText = `
-            background: #ffcc00; color: #000;
-            border: none; padding: 8px 14px;
-            border-radius: 8px; font-weight: bold;
-            cursor: pointer; font-size: 13px;
-            white-space: nowrap; flex-shrink: 0;
-            font-family: inherit;
-        `;
-        btn.onclick = (e) => {
-            e.stopPropagation();
-            action.onClick();
-            closeToast();
-        };
-        toast.appendChild(btn);
-    }
-
-    document.body.appendChild(toast);
-    requestAnimationFrame(() => {
-        toast.style.opacity = '1';
-        toast.style.transform = 'translateX(-50%) translateY(0)';
-    });
-
-    const timeout = setTimeout(closeToast, action ? 8000 : 3500);
-    toast.addEventListener('click', (e) => {
-        if (e.target === toast) {
-            clearTimeout(timeout);
-            closeToast();
-        }
-    });
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🆕 Cache API Helpers
-// ══════════════════════════════════════════════════════════════
-
-async function getPdfFromCache(url) {
-    try {
-        const cache = await caches.open(PDF_CACHE_NAME);
-        const resp = await cache.match(url);
-        if (!resp) return null;
-        return await resp.blob();
-    } catch { return null; }
-}
-
-async function cachePdf(url, blob) {
-    try {
-        const cache = await caches.open(PDF_CACHE_NAME);
-        await cache.put(url, new Response(blob, {
-            headers: { 'Content-Type': 'application/pdf' }
-        }));
-    } catch (e) {
-        console.warn('⚠️ Cache save failed:', e);
-    }
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🆕 PWA Detection
-// ══════════════════════════════════════════════════════════════
-
-export function isPWAMode() {
-    return (
-        window.matchMedia('(display-mode: standalone)').matches ||
-        window.matchMedia('(display-mode: fullscreen)').matches ||
-        window.matchMedia('(display-mode: minimal-ui)').matches ||
-        window.navigator.standalone === true  // iOS
-    );
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🆕 Device Handler: Share → Check Download → Download
-// ══════════════════════════════════════════════════════════════
-
-async function tryShare(pdfUrl, fileName) {
-    try {
-        // 1) جرّب من الكاش الأول (بدون نت)
-        let blob = await getPdfFromCache(pdfUrl);
-
-        // 2) لو مش في الكاش، حمّله وخزنه
-        if (!blob) {
-            const response = await fetch(pdfUrl, { mode: 'cors' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            blob = await response.blob();
-            await cachePdf(pdfUrl, blob);
-        }
-
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-
-        if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: fileName });
-            console.log('✅ Shared via Web Share API');
-            return true;
-        }
-    } catch (e) {
-        if (e.name === 'AbortError') {
-            console.log('ℹ️ User cancelled share');
-            return true;  // المستخدم قفل الشير شيت - مش خطأ
-        }
-        console.warn('⚠️ Share failed:', e);
-    }
-    return false;
-}
-
-async function triggerDownload(pdfUrl, fileName) {
-    try {
-        // جرّب من الكاش الأول
-        let blob = await getPdfFromCache(pdfUrl);
-
-        // لو مش في الكاش، حمّله
-        if (!blob) {
-            const resp = await fetch(pdfUrl, { mode: 'cors' });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            blob = await resp.blob();
-            await cachePdf(pdfUrl, blob);
-        }
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 1000);
-        console.log('✅ Downloaded:', fileName);
-        return true;
-    } catch (e) {
-        console.warn('⚠️ Blob download failed, falling back to direct link:', e);
-        // Fallback: link مباشر
-        try {
-            const a = document.createElement('a');
-            a.href = pdfUrl;
-            a.download = fileName;
-            a.target = '_blank';
-            a.rel = 'noopener noreferrer';
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => document.body.removeChild(a), 100);
-            return true;
-        } catch (err) {
-            console.error('❌ Download failed completely:', err);
-            return false;
-        }
-    }
-}
-
-/**
- * الفتح على الجهاز (PWA mode):
- * 1. يجرّب share (بتفتح "Open with" أو Share Sheet)
- * 2. لو share مش متاح → يشوف سجل التنزيل:
- *    - لو اتنزل قبل كده (خلال 30 يوم) → مفيش تنزيل تاني، بس رسالة + زر اختياري
- *    - لو مش اتنزل → ينزّل ويسجّل
- * 3. دبل-كليك سريع → بيتجاهل
- */
-async function openWithDeviceHandler(pdfUrl, fileName, path) {
-    console.log('📱 [PWA] Device handler:', fileName);
-
-    // 0) منع الضغط السريع المكرر
-    if (isRapidDoubleClick(path)) {
-        console.log('⏭️ Ignoring rapid duplicate click');
-        return true;
-    }
-
-    // 1) جرّب Share (شغال حتى لو الملف اتنزل قبل - المستخدم ممكن يفتحه في تطبيق تاني)
-    const shared = await tryShare(pdfUrl, fileName);
-    if (shared) {
-        markAsDownloaded(path);  // نسجّل إن المستخدم بقى عنده access للملف
-        return true;
-    }
-
-    // 2) لو الملف اتنزل قبل كده (خلال 30 يوم) → مفيش تنزيل تاني
-    if (isAlreadyDownloaded(path)) {
-        console.log('✓ Already downloaded, skipping re-download:', path);
-        showPwaToast(
-            `📁 "${fileName}" موجود بالفعل على جهازك`,
-            {
-                label: '⬇️ نزّل تاني',
-                onClick: async () => {
-                    await triggerDownload(pdfUrl, fileName);
-                    markAsDownloaded(path);
-                    showPwaToast(`⬇️ جاري تنزيل "${fileName}"...`);
-                }
-            }
-        );
-        return true;
-    }
-
-    // 3) أول تنزيل
-    await triggerDownload(pdfUrl, fileName);
-    markAsDownloaded(path);
-    showPwaToast(`⬇️ جاري تنزيل "${fileName}"...`);
-
-    return true;
-}
-
-// ══════════════════════════════════════════════════════════════
-// 🆕 smartOpen — نقطة دخول موحّدة (PWA-aware)
-// ══════════════════════════════════════════════════════════════
-
-export function smartOpen(item) {
-    if (!item || !item.path) {
-        console.warn('⚠️ smartOpen: item or path missing', item);
-        return;
-    }
-
-    // PWA mode: تجاوز popup + preview
-    if (isPWAMode()) {
-        const pdfUrl = item.path.startsWith('http')
-            ? item.path
-            : `${RAW_CONTENT_BASE}${item.path}`;
-        const fileName = decodeURIComponent(pdfUrl.split('/').pop().split('#')[0]);
-        return openWithDeviceHandler(pdfUrl, fileName, item.path);
-    }
-
-    // متصفح عادي: popup اختيار طريقة الفتح
-    return showOpenOptions(item);
-}
-
-// ---------- معاينة PDF ----------
+// ---------- معاينة PDF (محدثة بجودة عالية) ----------
 export async function showPDFPreview(item) {
     if (!item || !item.path) return;
 
@@ -333,23 +29,23 @@ export async function showPDFPreview(item) {
     const fileName = item.path.split('/').pop();
     const url = `${RAW_CONTENT_BASE}${item.path}`;
 
+    // إظهار النافذة
     popup.classList.remove('hidden');
     popup.style.display = 'flex';
 
     if (filenameEl) {
-        filenameEl.textContent = fileName.length > 30
-            ? fileName.substring(0, 27) + '...'
-            : fileName;
+        filenameEl.textContent = fileName.length > 30 ? fileName.substring(0, 27) + '...' : fileName;
     }
-
+    
     if (loading) {
         loading.classList.remove('hidden');
         loading.style.display = 'block';
         loading.textContent = 'جاري تحضير المعاينة...';
     }
-
+    
     canvas.style.display = 'none';
 
+    // إزالة أي صورة معاينة قديمة
     const oldImg = popup.querySelector('img[alt^="معاينة"]');
     if (oldImg) oldImg.remove();
 
@@ -358,11 +54,14 @@ export async function showPDFPreview(item) {
         isPreview: true
     });
 
+    console.log('🔍 معاينة:', url);
+
     try {
         if (typeof pdfjsLib === 'undefined') {
             throw new Error('PDF.js غير محمل');
         }
 
+        // تحميل PDF مع إعدادات التوافق
         const loadingTask = pdfjsLib.getDocument({
             url: url,
             cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
@@ -373,9 +72,12 @@ export async function showPDFPreview(item) {
         });
 
         const pdf = await loadingTask.promise;
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 2.0 });
+        console.log('📄 PDF محمل:', pdf.numPages, 'صفحة');
 
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 2.0 }); // زيادة الدقة
+
+        // ضبط أبعاد canvas
         canvas.width = viewport.width;
         canvas.height = viewport.height;
 
@@ -383,15 +85,20 @@ export async function showPDFPreview(item) {
         context.fillStyle = 'white';
         context.fillRect(0, 0, canvas.width, canvas.height);
 
-        await page.render({
+        // رسم الصفحة
+        const renderContext = {
             canvasContext: context,
             viewport: viewport,
             enableWebGL: false,
             renderInteractiveForms: false
-        }).promise;
+        };
 
+        await page.render(renderContext).promise;
+
+        // تحويل canvas إلى صورة PNG
         const imgData = canvas.toDataURL('image/png', 1.0);
 
+        // إنشاء عنصر img لعرض الصورة
         const previewImg = document.createElement('img');
         previewImg.src = imgData;
         previewImg.style.width = '100%';
@@ -410,16 +117,21 @@ export async function showPDFPreview(item) {
             loading.classList.add('hidden');
             loading.style.display = 'none';
         }
+
+        console.log('✅ تم تحويل المعاينة إلى صورة PNG عالية الجودة');
+
     } catch (error) {
         console.error('❌ خطأ في المعاينة:', error);
-        if (loading) loading.textContent = '❌ فشل تحميل المعاينة';
+        if (loading) {
+            loading.textContent = '❌ فشل تحميل المعاينة';
+        }
 
         const errorMsg = document.createElement('div');
         errorMsg.className = 'preview-error-msg';
         errorMsg.style.color = '#ff4d4d';
         errorMsg.style.padding = '20px';
         errorMsg.style.textAlign = 'center';
-        errorMsg.textContent = 'تعذر تحميل المعاينة.';
+        errorMsg.textContent = 'تعذر تحميل المعاينة. قد يكون الملف غير متاح أونلاين أو حظره المتصفح.';
 
         canvas.parentNode.appendChild(errorMsg);
         if (loading) loading.classList.add('hidden');
@@ -447,9 +159,10 @@ export function closePDFPreview() {
 
     currentPreviewItem = null;
     popNavigationState();
+    console.log('🔒 تم إغلاق المعاينة');
 }
 
-// ---------- عرض خيارات الفتح (في المتصفح) ----------
+// ---------- عرض خيارات الفتح ----------
 export function showOpenOptions(item) {
     const popup = document.getElementById('open-method-popup');
     const canvas = document.getElementById('method-preview-canvas');
@@ -470,9 +183,7 @@ export function showOpenOptions(item) {
     popup.style.display = 'flex';
 
     if (filenameEl) {
-        filenameEl.textContent = fileName.length > 40
-            ? fileName.substring(0, 37) + '...'
-            : fileName;
+        filenameEl.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
     }
 
     if (loading) {
@@ -480,7 +191,11 @@ export function showOpenOptions(item) {
         loading.style.display = 'block';
     }
 
-    if (canvas) canvas.style.display = 'none';
+    if (canvas) {
+        canvas.style.display = 'none';
+    }
+
+    console.log('📋 عرض خيارات الفتح:', url);
 
     if (canvas) {
         (async () => {
@@ -532,9 +247,14 @@ export function closeOpenOptions() {
     }
 }
 
-// ---------- طرق الفتح ----------
+// ---------- طرق الفتح (مُصححة ومُحسنة) ----------
+
+// 1. الفتح العارض الداخلي المدمج
 export async function openWithMozilla(item) {
-    if (!item) return;
+    if (!item) {
+        console.error('❌ openWithMozilla: item is null');
+        return;
+    }
 
     const url = `${RAW_CONTENT_BASE}${item.path}`;
     const scrollContainer = document.getElementById('scroll-container');
@@ -550,7 +270,10 @@ export async function openWithMozilla(item) {
     const toolbar = document.getElementById('toolbar');
     const eyeBtn = document.getElementById('pdf-eye-draggable');
 
-    if (!overlay || !pdfViewer) return;
+    if (!overlay || !pdfViewer) {
+        console.error('❌ عناصر عارض PDF غير موجودة');
+        return;
+    }
 
     overlay.classList.remove("hidden");
     overlay.style.display = 'flex';
@@ -565,35 +288,65 @@ export async function openWithMozilla(item) {
     resetBrowserZoom();
 
     try {
+        // 1. جلب الملف كـ Blob لتجاوز قيود CORS بالكامل
         const response = await fetch(url);
         if (!response.ok) throw new Error('فشل تحميل الملف من السيرفر');
         const blob = await response.blob();
 
-        if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+        // 2. مسح الـ Blob القديم إن وجد لمنع تسريب الذاكرة (Memory Leak)
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+        }
+
+        // 3. إنشاء Blob URL محلي مؤقت
         currentBlobUrl = URL.createObjectURL(blob);
 
+        // 4. تمرير الـ Blob URL المحلي لعارض موزيلا داخل الـ iframe
         pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(currentBlobUrl)}#zoom=page-fit`;
+
     } catch (error) {
-        console.error('❌ خطأ:', error);
+        console.error('❌ خطأ أثناء إنشاء الـ Blob URL، العودة للرابط المباشر:', error);
+        // كخيار احتياطي إذا فشل الـ fetch لأي سبب
         pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}#zoom=page-fit`;
     }
 
-    if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
     closeOpenOptions();
+    console.log('📄 تم فتح المستند داخل Mozilla Viewer باستخدام Blob URL المحلي');
 }
 
+// 2. الفتح عبر Google Drive
 export function openWithDrive(item) {
-    if (!item) return;
+    if (!item) {
+        console.error('❌ openWithDrive: item is null');
+        return;
+    }
+
     const url = `${RAW_CONTENT_BASE}${item.path}`;
     const driveUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
     window.open(driveUrl, '_blank', 'noopener,noreferrer');
-    if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
+
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
     closeOpenOptions();
+    console.log('💾 فتح بـ Google Drive:', driveUrl);
 }
 
+// 3. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
 export function openWithBrowser(item) {
-    if (!item) return;
+    if (!item) {
+        console.error('❌ openWithBrowser: item is null');
+        return;
+    }
+
     const url = `${RAW_CONTENT_BASE}${item.path}`;
+    
+    // استخدام عنصر <a> محاكى لضمان عدم حظر النوافذ المنبثقة
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';
@@ -601,73 +354,18 @@ export function openWithBrowser(item) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
+
+    if (typeof trackSvgOpen === 'function') {
+        trackSvgOpen(item.path);
+    }
+
     closeOpenOptions();
+    console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
 }
 
-// ---------- سحب زر العين ----------
-function startDrag(e) {
-    const eyeBtn = document.getElementById('pdf-eye-draggable');
-    if (!eyeBtn) return;
-    dragActive = false;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    startX = clientX;
-    startY = clientY;
-    const rect = eyeBtn.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
-}
-
-function onDrag(e) {
-    const eyeBtn = document.getElementById('pdf-eye-draggable');
-    if (!eyeBtn || startX === undefined) return;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = clientX - startX;
-    const dy = clientY - startY;
-    if (!dragActive && Math.sqrt(dx * dx + dy * dy) > 5) {
-        dragActive = true;
-        eyeBtn.classList.add('dragging');
-    }
-    if (dragActive) {
-        eyeBtn.style.left = `${initialLeft + dx}px`;
-        eyeBtn.style.top = `${initialTop + dy}px`;
-        eyeBtn.style.right = 'auto';
-        if (e.cancelable) e.preventDefault();
-    }
-}
-
-function stopDrag() {
-    const eyeBtn = document.getElementById('pdf-eye-draggable');
-    if (eyeBtn && dragActive) eyeBtn.classList.remove('dragging');
-    setTimeout(() => {
-        startX = undefined;
-        startY = undefined;
-        dragActive = false;
-    }, 50);
-}
-
-// ---------- Toggle Toolbars ----------
-export function toggleMozillaToolbar() {
-    const overlay = document.getElementById('pdf-overlay');
-    if (!overlay) return;
-    overlay.classList.toggle('fullscreen-mode');
-    isToolbarExpanded = overlay.classList.contains('fullscreen-mode');
-}
-
-export function togglePdfToolbar() {
-    const overlay = document.getElementById('pdf-overlay');
-    const eyeBtn = document.getElementById('pdf-eye-draggable');
-    if (!overlay || !eyeBtn) return;
-    isPdfToolbarHidden = !isPdfToolbarHidden;
-    overlay.classList.toggle('toolbar-hidden', isPdfToolbarHidden);
-    eyeBtn.classList.toggle('active', isPdfToolbarHidden);
-    eyeBtn.title = isPdfToolbarHidden ? 'إظهار شريط الأدوات' : 'إخفاء شريط الأدوات';
-}
-
-// ---------- تهيئة المستمعات ----------
+// ---------- تهيئة مستمعات الأحداث ----------
 export function initPDFViewer() {
+
     const closePreviewBtn = document.getElementById('preview-close-btn');
     const openFromPreviewBtn = document.getElementById('preview-open-btn');
     const previewPopup = document.getElementById('pdf-preview-popup');
@@ -692,7 +390,9 @@ export function initPDFViewer() {
 
     if (previewPopup) {
         previewPopup.addEventListener('click', (e) => {
-            if (e.target === previewPopup) closePDFPreview();
+            if (e.target === previewPopup) {
+                closePDFPreview();
+            }
         });
     }
 
@@ -719,20 +419,32 @@ export function initPDFViewer() {
         });
     }
 
-    if (mozillaBtn) mozillaBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentPreviewItem) openWithMozilla(currentPreviewItem);
-    });
+    if (mozillaBtn) {
+        mozillaBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentPreviewItem) {
+                openWithMozilla(currentPreviewItem);
+            }
+        });
+    }
 
-    if (browserBtn) browserBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentPreviewItem) openWithBrowser(currentPreviewItem);
-    });
+    if (browserBtn) {
+        browserBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentPreviewItem) {
+                openWithBrowser(currentPreviewItem);
+            }
+        });
+    }
 
-    if (driveBtn) driveBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (currentPreviewItem) openWithDrive(currentPreviewItem);
-    });
+    if (driveBtn) {
+        driveBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentPreviewItem) {
+                openWithDrive(currentPreviewItem);
+            }
+        });
+    }
 
     const closePdfBtn = document.getElementById('closePdfBtn');
     const downloadBtn = document.getElementById('downloadBtn');
@@ -794,17 +506,24 @@ export function initPDFViewer() {
         });
     }
 
-    if (expandToolbarBtn) expandToolbarBtn.addEventListener('click', toggleMozillaToolbar);
+    if (expandToolbarBtn) {
+        expandToolbarBtn.addEventListener('click', toggleMozillaToolbar);
+    }
 
+    // مستمعات السحب لزر العين
     if (pdfEyeDraggable) {
         pdfEyeDraggable.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', onDrag);
         window.addEventListener('mouseup', stopDrag);
+
         pdfEyeDraggable.addEventListener('touchstart', startDrag, { passive: false });
         window.addEventListener('touchmove', onDrag, { passive: false });
         window.addEventListener('touchend', stopDrag);
-        pdfEyeDraggable.addEventListener('click', () => {
-            if (!dragActive) togglePdfToolbar();
+
+        pdfEyeDraggable.addEventListener('click', (e) => {
+            if (!dragActive) {
+                togglePdfToolbar();
+            }
         });
     }
 
