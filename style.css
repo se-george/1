@@ -27,7 +27,7 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   fill: #ffffff !important;
   filter: drop-shadow(0px 2px 6px rgba(0, 0, 0, 0.9));
-  
+
   pointer-events: none;
   opacity: 1 !important;
   visibility: visible !important;
@@ -584,16 +584,27 @@ html, body {
   visibility: visible;
 }
 
-/* [002] المستطيلات التفاعلية */
+/* ============================================
+   [002] المستطيلات التفاعلية - مع ميزة Hover
+   ============================================ */
+
+/* القاعدة الأساسية — stroke-width رجعناه لـ 2px زي الكود القديم */
 .m {
   fill: transparent !important;
-  stroke-width: 6px;
+  stroke-width: 2px;
   transform-origin: center center;
-  transition: filter 0.2s ease, stroke-width 0.2s ease;
+  transition: filter 0.2s ease, stroke-width 0.2s ease, transform 0.2s ease;
   cursor: pointer;
-  forced-color-adjust: none !important; 
+  forced-color-adjust: none !important;
 }
 
+/* 🎯 قاعدة الـ Hover الأساسية — اللي كانت مفقودة في الكود الجديد */
+.m:hover {
+  stroke-width: 6px;
+  transform: scale(1.02);
+}
+
+/* 🎨 ألوان الـ stroke الأساسية */
 .q { stroke: var(--color-q); }
 .v { stroke: var(--color-v); }
 .i { stroke: var(--color-i); }
@@ -603,6 +614,42 @@ html, body {
 .is { stroke: var(--color-is); }
 .x { fill: #ffffffcc; }
 .o { fill: #ffffff00; }
+
+/* ✨ تأثير Hover مخصص لكل لون - Glow قوي وواضح */
+.q:hover {
+  stroke: #ff2222;
+  filter: drop-shadow(0 0 12px var(--color-q)) drop-shadow(0 0 24px var(--color-q));
+}
+
+.v:hover {
+  stroke: #3399ff;
+  filter: drop-shadow(0 0 12px var(--color-v)) drop-shadow(0 0 24px var(--color-v));
+}
+
+.i:hover {
+  stroke: #ffffff;
+  filter: drop-shadow(0 0 12px var(--color-i)) drop-shadow(0 0 24px var(--color-i));
+}
+
+.a:hover {
+  stroke: #c355ff;
+  filter: drop-shadow(0 0 12px var(--color-a)) drop-shadow(0 0 24px var(--color-a));
+}
+
+.s:hover {
+  stroke: #44dd44;
+  filter: drop-shadow(0 0 12px var(--color-s)) drop-shadow(0 0 24px var(--color-s));
+}
+
+.l:hover {
+  stroke: #ffdd00;
+  filter: drop-shadow(0 0 12px var(--color-l)) drop-shadow(0 0 24px var(--color-l));
+}
+
+.is:hover {
+  stroke: #c8ff8e;
+  filter: drop-shadow(0 0 12px var(--color-is)) drop-shadow(0 0 24px var(--color-is));
+}
 
 /* ==========================================================================
    [003] شاشة اختيار المجموعة (Group Selection Screen)
@@ -1583,14 +1630,34 @@ img, image, svg, rect {
   font-size: 13px;
   padding: 20px 0;
 }
-/* تعطيل تأثيرات الـ Hover تماماً عند إيقاف السويتش */
+
+/* ============================================
+   🚫 تعطيل تأثيرات الـ Hover عند إيقاف السويتش
+   ============================================ */
+
+/* المستطيلات - ترجع للـ base (2px) بدون glow */
 body.disable-hover .m:hover {
-    filter: none !important;
-    stroke-width: 2px !important;
-    transform: none !important;
+  filter: none !important;
+  stroke-width: 2px !important;
+  transform: none !important;
 }
 
+/* تعطيل التأثير الملوّن لكل نوع */
+body.disable-hover .q:hover,
+body.disable-hover .v:hover,
+body.disable-hover .i:hover,
+body.disable-hover .a:hover,
+body.disable-hover .s:hover,
+body.disable-hover .l:hover,
+body.disable-hover .is:hover {
+  filter: none !important;
+  stroke-width: 2px !important;
+  transform: none !important;
+}
+
+/* تعطيل hover على أزرار المجموعات */
 body.disable-hover .group-btn:hover {
-    transform: none !important;
-    box-shadow: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border-color: #444444 !important;
 }
