@@ -1,4 +1,4 @@
-import { WEEK_SPACING } from './groups-data.js';
+import { WEEK_SPACING } from '../groups-data.js';
 
 const DEFAULT_SLOT_CLASS = 'o';
 
