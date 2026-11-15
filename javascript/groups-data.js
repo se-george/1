@@ -100,5 +100,21 @@ wed: { transform: 'translate(0,1828)', slots: [
 A: {template: {
 sat: { transform: 'translate(0,1024)', slots: [
 { x: 1023, y: 2453, w: 1, h: 1 }]},},
-1:  { sat: ['o']}
-}
+1:  { sat: ['o']},
+B: {template: {
+sat: { transform: 'translate(0,1024)', slots: [
+{ x: 1023, y: 2453, w: 1, h: 1 }]},},
+1:  { sat: ['o']},
+C: {template: {
+sat: { transform: 'translate(0,1024)', slots: [
+{ x: 1023, y: 2453, w: 1, h: 1 }]},},
+1:  { sat: ['o']},
+D: {template: {
+sat: { transform: 'translate(0,1024)', slots: [
+{ x: 1023, y: 2453, w: 1, h: 1 }]},},
+1:  { sat: ['o']},
+E: {template: {
+sat: { transform: 'translate(0,1024)', slots: [
+{ x: 1023, y: 2453, w: 1, h: 1 }]},},
+1:  { sat: ['o']},
+};
