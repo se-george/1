@@ -13,67 +13,27 @@ import { checkForUpdates } from './javascript/core/update-checker.js';
 import { smartOpen } from './javascript/ui/pdf-viewer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ══════════════════════════════════════════════════════
-    // 🆕 تهيئة السويتش دايماً — قبل أي شرط
-    // ══════════════════════════════════════════════════════
-    const hoverSwitch = document.getElementById('js-toggle');
-    if (hoverSwitch) {
-        const savedHoverState = localStorage.getItem('disable_hover');
-        if (savedHoverState === 'true') {
-            hoverSwitch.checked = false;
-            document.body.classList.add('disable-hover');
-        }
-
-        hoverSwitch.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                document.body.classList.remove('disable-hover');
-                localStorage.setItem('disable_hover', 'false');
-                console.log('✨ تم تفعيل الـ Hover');
-            } else {
-                document.body.classList.add('disable-hover');
-                localStorage.setItem('disable_hover', 'true');
-                console.log('🚫 تم إيقاف الـ Hover');
-
-                // 🆕 تنظيف أي hover نشط حالياً (لو المستخدم بيسويش وهو واقف على مستطيل)
-                import('./javascript/features/svg-processor.js')
-                    .then(({ cleanupHover }) => cleanupHover());
-            }
-        });
-    }
-
-    // ══════════════════════════════════════════════════════
-    // التهيئة العادية
-    // ══════════════════════════════════════════════════════
-    const preloadDone = localStorage.getItem('preload_done');
-
-    if (!preloadDone) {
-        initPreloadSystem();
-    } else {
-        autoLoadLastGroup();
-        setupBackButton();
-        preventInteractionWhenHidden();
-        initWoodUI();
-        initPDFViewer();
-        observeZIndexChanges();
-        updateWelcomeMessages();
-
-        document.addEventListener('contextmenu', (e) => {
+    // الاستماع للضغط على مستطيلات الـ SVG
+    const svgContainer = document.getElementById('main-svg');
+    if (svgContainer) {
+        svgContainer.addEventListener('click', (e) => {
             const target = e.target;
-            if (target.tagName === 'image' ||
-                target.tagName === 'IMG' ||
-                target.tagName === 'svg' ||
-                target.tagName === 'rect' ||
-                target.closest('svg')) {
-                e.preventDefault();
-                return false;
+            if (target.tagName === 'rect' && (target.getAttribute('data-hrsf') || target.getAttribute('data-path'))) {
+                const pdfPath = target.getAttribute('data-hrsf') || target.getAttribute('data-path');
+                if (pdfPath) {
+                    smartOpen({ path: pdfPath });
+                }
             }
         });
-
-        // ❌ امسح بلوك تهيئة hoverSwitch القديم من هنا (اتنقل فوق)
     }
-
-    console.log('✅ script.js تم تحميله بالكامل');
 });
+
+const updateBtn = document.getElementById('check-update-btn');
+if (updateBtn) {
+    updateBtn.addEventListener('click', () => {
+        checkForUpdates();
+    });
+}
 
 // ---------- تحميل آخر جروب تلقائياً ----------
 function autoLoadLastGroup() {
@@ -97,7 +57,6 @@ function autoLoadLastGroup() {
         console.log('📋 لا يوجد جروب محفوظ - عرض شاشة الاختيار');
     }
 }
-
 
 // ---------- مراقب تغيير Z-Index (إعادة تعيين التكبير) ----------
 function observeZIndexChanges() {
@@ -157,31 +116,60 @@ function observeZIndexChanges() {
 
 // ---------- التهيئة عند تحميل DOM ----------
 document.addEventListener('DOMContentLoaded', () => {
+    // ══════════════════════════════════════════════════════
+    // 🆕 تهيئة سويتش الـ Hover — دايماً (قبل أي شرط)
+    // ══════════════════════════════════════════════════════
+    const hoverSwitch = document.getElementById('js-toggle');
+    if (hoverSwitch) {
+        const savedHoverState = localStorage.getItem('disable_hover');
+        if (savedHoverState === 'true') {
+            hoverSwitch.checked = false;
+            document.body.classList.add('disable-hover');
+        }
+
+        hoverSwitch.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                document.body.classList.remove('disable-hover');
+                localStorage.setItem('disable_hover', 'false');
+                console.log('✨ تم تفعيل الـ Hover');
+            } else {
+                document.body.classList.add('disable-hover');
+                localStorage.setItem('disable_hover', 'true');
+                console.log('🚫 تم إيقاف الـ Hover');
+
+                // 🆕 تنظيف أي hover نشط حالياً
+                import('./javascript/features/svg-processor.js')
+                    .then(({ cleanupHover }) => {
+                        if (typeof cleanupHover === 'function') cleanupHover();
+                    })
+                    .catch(err => console.warn('cleanupHover import failed:', err));
+            }
+        });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // التهيئة العادية
+    // ══════════════════════════════════════════════════════
     const preloadDone = localStorage.getItem('preload_done');
 
     if (!preloadDone) {
-        // أول زيارة: نشغل نظام preload فقط (سيقوم بإخفاء باقي المحتوى)
+        // أول زيارة: نشغل نظام preload فقط
         initPreloadSystem();
-        // لا داعي لتهيئة باقي المكونات الآن، لأن preload سيعيد التحميل لاحقاً
     } else {
         // زيارة سابقة: نكمل التحميل الطبيعي
         autoLoadLastGroup();
-
-        // تهيئة المكونات
         setupBackButton();
         preventInteractionWhenHidden();
         initWoodUI();
         initPDFViewer();
         observeZIndexChanges();
-
-        // تحديث رسائل الترحيب
         updateWelcomeMessages();
 
         // منع القائمة اليمنى على الصور
         document.addEventListener('contextmenu', (e) => {
             const target = e.target;
-            if (target.tagName === 'image' || 
-                target.tagName === 'IMG' || 
+            if (target.tagName === 'image' ||
+                target.tagName === 'IMG' ||
                 target.tagName === 'svg' ||
                 target.tagName === 'rect' ||
                 target.closest('svg')) {
@@ -189,21 +177,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
         });
+    }
+
+    console.log('✅ script.js تم تحميله بالكامل - جميع الوحدات جاهزة');
+});
+
+export { scan };
+
 // ==========================================
 // PWA Install Prompt Handler
 // ==========================================
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // منع المتصفح من إظهار البانر الافتراضي
   e.preventDefault();
   deferredPrompt = e;
-  
-  // ابحث عن الزرار في الصفحة (تأكد إن الـ ID بتاع الزرار عندك مطابق لـ pwa-install-btn أو غيره)
+
   const installBtn = document.getElementById('pwa-install-btn');
   if (installBtn) {
-    installBtn.style.display = 'inline-flex'; // أو block حسب تصميمك
-    
+    installBtn.style.display = 'inline-flex';
+
     installBtn.addEventListener('click', () => {
       installBtn.style.display = 'none';
       deferredPrompt.prompt();
@@ -219,7 +212,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
   }
 });
 
-// لو التطبيق اتثبت خلاص، اخفي الزرار
 window.addEventListener('appinstalled', () => {
   deferredPrompt = null;
   const installBtn = document.getElementById('pwa-install-btn');
