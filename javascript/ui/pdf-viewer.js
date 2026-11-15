@@ -443,26 +443,5 @@ export function initPDFViewer() {
         });
     }
 
-    if (expandToolbarBtn) {
-        expandToolbarBtn.addEventListener('click', toggleMozillaToolbar);
-    }
-
-    // مستمعات السحب لزر العين
-    if (pdfEyeDraggable) {
-        pdfEyeDraggable.addEventListener('mousedown', startDrag);
-        window.addEventListener('mousemove', onDrag);
-        window.addEventListener('mouseup', stopDrag);
-
-        pdfEyeDraggable.addEventListener('touchstart', startDrag, { passive: false });
-        window.addEventListener('touchmove', onDrag, { passive: false });
-        window.addEventListener('touchend', stopDrag);
-
-        pdfEyeDraggable.addEventListener('click', (e) => {
-            if (!dragActive) {
-                togglePdfToolbar();
-            }
-        });
-    }
-
     console.log('✅ معالجات المعاينة والفتح جاهزة');
 }
