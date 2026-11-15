@@ -24,7 +24,9 @@ wed: { transform: 'translate(0,1828)', slots: [
 { cls: 'm a', href: './Precalculus/Lecture/Recap.pdf' },],
 { cls: 'm l', href: './Introduction to Computing/Lecture/c_overview-am.pdf' },
 { cls: 'm l', href: './Biochemistry/Lecture/07 & 8.pdf,],
-      sun: ['o', 'o', 'o'],
+      sun: ['o', 
+{ cls: 'm l', href: './Business/Lecture/ch. 5.pdf
+, 'o'],
       tue: ['o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
