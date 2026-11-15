@@ -19,12 +19,12 @@ wed: { transform: 'translate(0,1828)', slots: [
 { x: 680.349, y: 0, w: 148.764, h: 416.255 }]},},
 9: {
      sat: [
-{ cls:'m l',href:'./Academic English/Lecture/???.pdf' },
-{ cls:'m l',href:'./Biochemistry/Lecture/c_overview-am.pdf' },
-{ cls:'m s',href:'./Biochemistry/Section/07 & 8.pdf'},],
-      sun: ['o', 
-{cls:'m l',href:'./Business/Lecture/ch. 5.pdf'}
-, 'o'],
+{ cls: 'm l', href: './Academic English/Lecture/???.pdf' },
+{ cls: 'm l', href: './Biochemistry/Lecture/c_overview-am.pdf' },
+{ cls: 'm s', href: './Biochemistry/Section/07 & 8.pdf'},],
+      sun: [
+{cls : 'm s', href: './Introduction to Computing/Section/???.pdf'},
+{cls:'m l',href:'./Business/Lecture/ch. 5.pdf'}, 'o'],
       tue: ['o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
