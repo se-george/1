@@ -225,14 +225,8 @@ export async function initializeGroup(groupLetter) {
     const previousGroup = localStorage.getItem('selectedGroup');
 
     if (previousGroup && previousGroup !== groupLetter) {
-        console.log(`🔄 تم تغيير الجروب من ${previousGroup} إلى ${groupLetter} - مسح الكاش القديم`);
-        const cacheNames = await caches.keys();
-        for (const cacheName of cacheNames) {
-            if (cacheName.includes(`group-${previousGroup}`)) {
-                await caches.delete(cacheName);
-                console.log(`🗑️ تم مسح: ${cacheName}`);
-            }
-        }
+        console.log(`🔄 تم تغيير الجروب من ${previousGroup} إلى ${groupLetter}`);
+        // ملاحظة: لم نعد نحتاج لمسح كاش مجموعة محددة - SW يتولى الكاش الموحّد
     }
 
     saveSelectedGroup(groupLetter);
@@ -261,6 +255,8 @@ export async function initializeGroup(groupLetter) {
 }
 
 // ---------- تحميل الصور ----------
+// ✅ بعد التحسين: يعتمد بالكامل على Service Worker للكاش (Cache First)
+// لا يوجد كاش موازي ولا تتعارض مع ترقيات sw.js
 export async function loadImages() {
     const mainSvg = document.getElementById('main-svg');
     if (!mainSvg) return;
@@ -275,88 +271,56 @@ export async function loadImages() {
     const MAX_CONCURRENT = 3;
     let currentIndex = 0;
 
-    async function loadNextBatch() {
-        while (currentIndex < imageUrlsToLoad.length &&
-            currentIndex < (loadingProgress.completedSteps - 1) + MAX_CONCURRENT) {
-            const url = imageUrlsToLoad[currentIndex];
-            currentIndex++;
-
-            try {
-                const cache = await caches.open('semester-3-cache-v1');
-                const cachedImg = await cache.match(url);
-                if (cachedImg) {
-                    console.log(`✅ الصورة موجودة في الكاش: ${url.split('/').pop()}`);
-                    const blob = await cachedImg.blob();
-                    const imgUrl = URL.createObjectURL(blob);
-                    const allImages = [
-                        ...mainSvg.querySelectorAll('image'),
-                        ...(document.getElementById('files-list-container')?.querySelectorAll('image') || [])
-                    ];
-                    allImages.forEach(si => {
-                        const dataSrc = si.getAttribute('data-src');
-                        if (dataSrc === url) {
-                            si.setAttribute('href', imgUrl);
-                        }
-                    });
-                    loadingProgress.completedSteps++;
-                    updateLoadProgress();
-                    if (loadingProgress.completedSteps >= loadingProgress.totalSteps) {
-                        finishLoading();
-                    } else {
-                        loadNextBatch();
-                    }
-                    continue;
-                }
-            } catch (cacheError) {
-                console.warn(`⚠️ خطأ في الوصول للكاش: ${cacheError}`);
-            }
-
+    function loadOneImage(url) {
+        return new Promise((resolve) => {
             const img = new Image();
-            img.onload = async function () {
+
+            img.onload = function () {
                 const allImages = [
                     ...mainSvg.querySelectorAll('image'),
-                    ...(document.getElementById('files-list-container')?.querySelectorAll('image') || [])
+                    ...(document.getElementById('files-list-container')
+                        ?.querySelectorAll('image') || [])
                 ];
                 allImages.forEach(si => {
                     const dataSrc = si.getAttribute('data-src');
                     if (dataSrc === url) {
                         si.setAttribute('href', this.src);
-                        console.log(`✅ تم تحديث الصورة: ${url.split('/').pop()}`);
+                        si.removeAttribute('data-src'); // منع إعادة المعالجة
                     }
                 });
-
-                try {
-                    const cache = await caches.open('semester-3-cache-v1');
-                    const imgResponse = await fetch(url);
-                    if (imgResponse.ok) {
-                        await cache.put(url, imgResponse);
-                        console.log(`💾 تم حفظ الصورة في الكاش: ${url.split('/').pop()}`);
-                    }
-                } catch (cacheError) {
-                    console.warn(`⚠️ فشل حفظ الصورة في الكاش: ${cacheError}`);
-                }
+                console.log(`✅ تم تحديث الصورة: ${url.split('/').pop()}`);
 
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
-                if (loadingProgress.completedSteps >= loadingProgress.totalSteps) {
-                    finishLoading();
-                } else {
-                    loadNextBatch();
-                }
+                resolve();
             };
 
             img.onerror = function () {
                 console.error(`❌ خطأ في تحميل ${url}`);
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
-                if (loadingProgress.completedSteps >= loadingProgress.totalSteps) {
-                    finishLoading();
-                } else {
-                    loadNextBatch();
-                }
+                resolve();
             };
 
+            // SW سيتدخل: Cache First → يجلب من الكاش أو الشبكة ويحفظ تلقائياً
             img.src = url;
+        });
+    }
+
+    async function loadNextBatch() {
+        const batch = [];
+        const end = Math.min(currentIndex + MAX_CONCURRENT, imageUrlsToLoad.length);
+        for (let i = currentIndex; i < end; i++) {
+            batch.push(loadOneImage(imageUrlsToLoad[i]));
+        }
+        currentIndex = end;
+
+        await Promise.all(batch);
+
+        if (currentIndex >= imageUrlsToLoad.length) {
+            finishLoading();
+        } else {
+            loadNextBatch();
         }
     }
 
