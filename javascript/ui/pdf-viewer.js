@@ -1,3 +1,9 @@
+// ============================================
+// pdf-viewer.js - معاينة PDF وفتحه بطرق متعددة
+// مع تحسين جودة المعاينة ومعالجة أخطاء أفضل
+// وإضافة زر عين قابل للسحب داخل PDF
+// ============================================
+
 import { RAW_CONTENT_BASE, NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState } from '../core/navigation.js';
 import { resetBrowserZoom } from '../core/utils.js';
@@ -9,7 +15,7 @@ export let isPdfToolbarHidden = false; // حالة إخفاء شريط أدوا�
 // متغيرات السحب للزر
 let dragActive = false;
 let startX, startY, initialLeft, initialTop;
-let currentBlobUrl = null;
+let currentBlobUrl = null; // لتتبع الـ Blob URL النشط ومسحه من الذاكرة
 
 // ---------- معاينة PDF (محدثة بجودة عالية) ----------
 export async function showPDFPreview(item) {
@@ -245,122 +251,6 @@ export function closeOpenOptions() {
         popup.classList.add('hidden');
         popup.style.display = 'none';
     }
-}
-
-// ---------- طرق الفتح (مُصححة ومُحسنة) ----------
-
-// 1. الفتح العارض الداخلي المدمج
-export async function openWithMozilla(item) {
-    if (!item) {
-        console.error('❌ openWithMozilla: item is null');
-        return;
-    }
-
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
-    const scrollContainer = document.getElementById('scroll-container');
-    const scrollPosition = scrollContainer ? scrollContainer.scrollLeft : 0;
-    pushNavigationState(NAV_STATE.PDF_VIEW, {
-        path: item.path,
-        scrollPosition: scrollPosition,
-        viewer: 'mozilla'
-    });
-
-    const overlay = document.getElementById("pdf-overlay");
-    const pdfViewer = document.getElementById("pdfFrame");
-    const toolbar = document.getElementById('toolbar');
-    const eyeBtn = document.getElementById('pdf-eye-draggable');
-
-    if (!overlay || !pdfViewer) {
-        console.error('❌ عناصر عارض PDF غير موجودة');
-        return;
-    }
-
-    overlay.classList.remove("hidden");
-    overlay.style.display = 'flex';
-
-    if (toolbar && eyeBtn) {
-        toolbar.style.display = 'flex';
-        eyeBtn.classList.remove('active');
-        eyeBtn.title = 'إخفاء شريط الأدوات';
-        isPdfToolbarHidden = false;
-    }
-
-    resetBrowserZoom();
-
-    try {
-        // 1. جلب الملف كـ Blob لتجاوز قيود CORS بالكامل
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('فشل تحميل الملف من السيرفر');
-        const blob = await response.blob();
-
-        // 2. مسح الـ Blob القديم إن وجد لمنع تسريب الذاكرة (Memory Leak)
-        if (currentBlobUrl) {
-            URL.revokeObjectURL(currentBlobUrl);
-        }
-
-        // 3. إنشاء Blob URL محلي مؤقت
-        currentBlobUrl = URL.createObjectURL(blob);
-
-        // 4. تمرير الـ Blob URL المحلي لعارض موزيلا داخل الـ iframe
-        pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(currentBlobUrl)}#zoom=page-fit`;
-
-    } catch (error) {
-        console.error('❌ خطأ أثناء إنشاء الـ Blob URL، العودة للرابط المباشر:', error);
-        // كخيار احتياطي إذا فشل الـ fetch لأي سبب
-        pdfViewer.src = `https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(url)}#zoom=page-fit`;
-    }
-
-    if (typeof trackSvgOpen === 'function') {
-        trackSvgOpen(item.path);
-    }
-
-    closeOpenOptions();
-    console.log('📄 تم فتح المستند داخل Mozilla Viewer باستخدام Blob URL المحلي');
-}
-
-// 2. الفتح عبر Google Drive
-export function openWithDrive(item) {
-    if (!item) {
-        console.error('❌ openWithDrive: item is null');
-        return;
-    }
-
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
-    const driveUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
-    window.open(driveUrl, '_blank', 'noopener,noreferrer');
-
-    if (typeof trackSvgOpen === 'function') {
-        trackSvgOpen(item.path);
-    }
-
-    closeOpenOptions();
-    console.log('💾 فتح بـ Google Drive:', driveUrl);
-}
-
-// 3. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
-export function openWithBrowser(item) {
-    if (!item) {
-        console.error('❌ openWithBrowser: item is null');
-        return;
-    }
-
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
-    
-    // استخدام عنصر <a> محاكى لضمان عدم حظر النوافذ المنبثقة
-    const a = document.createElement('a');
-    a.href = url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    if (typeof trackSvgOpen === 'function') {
-        trackSvgOpen(item.path);
-    }
-
-    closeOpenOptions();
-    console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
 }
 
 // ---------- تهيئة مستمعات الأحداث ----------
