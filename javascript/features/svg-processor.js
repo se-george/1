@@ -37,6 +37,7 @@ export function cleanupHover() {
 // ---------- بدء تأثير الهوفر ----------
 export function startHover() {
     if (!interactionEnabled || this.classList.contains('list-item')) return;
+    if (document.body.classList.contains('disable-hover')) return; 
     const mainSvg = document.getElementById('main-svg');
     const clipDefs = mainSvg?.querySelector('defs');
     if (!mainSvg || !clipDefs) return;
