@@ -175,12 +175,6 @@ export function showOpenOptions(item) {
     const loading = document.getElementById('method-loading');
     const filenameEl = document.getElementById('method-filename');
 
-    if (!popup) {
-        console.error('❌ open-method-popup غير موجود');
-        openWithMozilla(item);
-        return;
-    }
-
     currentPreviewItem = item;
     const fileName = item.path.split('/').pop();
     const url = `${RAW_CONTENT_BASE}${item.path}`;
@@ -255,11 +249,7 @@ export function closeOpenOptions() {
 
 // ---------- طرق الفتح (مُصححة ومُحسنة) ----------
 
-    resetBrowserZoom();
-
-    try {
-
-// 2. الفتح عبر Google Drive
+// 1. الفتح عبر Google Drive
 export function openWithDrive(item) {
     if (!item) {
         console.error('❌ openWithDrive: item is null');
@@ -278,7 +268,7 @@ export function openWithDrive(item) {
     console.log('💾 فتح بـ Google Drive:', driveUrl);
 }
 
-// 3. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
+// 2. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
 export function openWithBrowser(item) {
     if (!item) {
         console.error('❌ openWithBrowser: item is null');
