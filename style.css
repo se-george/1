@@ -34,24 +34,20 @@
 }
 
 /* ========================================
-   COMPLETE STYLE.CSS - مع إضافة أنماط زر العين القابل للسحب داخل PDF
+   COMPLETE STYLE.CSS - مع ميزة Hover المُصلحة
    ======================================== */
 
 :root {
-  /* بنعرف المتصفح إن الموقع تصميمه داكن أصلاً */
   color-scheme: dark !important;
 }
 
-/* أهم كود لمنع المتصفح من تغيير ألوان الـ SVG والمستطيلات */
 #main-svg, .m, rect, text {
-  /* بيمنع المتصفح (خصوصاً Chrome Mobile) من إعادة تلوين العناصر */
   forced-color-adjust: none !important;
 }
 
 html, body {
   background-color: black !important;
   color: white !important;
-  /* حماية إضافية ضد الـ Auto Dark Mode */
   color-scheme: only dark;
 }
 
@@ -588,7 +584,7 @@ html, body {
    [002] المستطيلات التفاعلية - مع ميزة Hover
    ============================================ */
 
-/* القاعدة الأساسية — stroke-width رجعناه لـ 2px زي الكود القديم */
+/* القاعدة الأساسية */
 .m {
   fill: transparent !important;
   stroke-width: 2px;
@@ -598,13 +594,13 @@ html, body {
   forced-color-adjust: none !important;
 }
 
-/* 🎯 قاعدة الـ Hover الأساسية — اللي كانت مفقودة في الكود الجديد */
+/* 🎯 قاعدة الـ Hover الأساسية */
 .m:hover {
   stroke-width: 6px;
   transform: scale(1.02);
 }
 
-/* 🎨 ألوان الـ stroke الأساسية */
+/* ألوان الـ stroke الأساسية */
 .q { stroke: var(--color-q); }
 .v { stroke: var(--color-v); }
 .i { stroke: var(--color-i); }
@@ -615,7 +611,7 @@ html, body {
 .x { fill: #ffffffcc; }
 .o { fill: #ffffff00; }
 
-/* ✨ تأثير Hover مخصص لكل لون - Glow قوي وواضح */
+/* ✨ تأثير Hover مخصص لكل لون */
 .q:hover {
   stroke: #ff2222;
   filter: drop-shadow(0 0 12px var(--color-q)) drop-shadow(0 0 24px var(--color-q));
@@ -652,7 +648,7 @@ html, body {
 }
 
 /* ==========================================================================
-   [003] شاشة اختيار المجموعة (Group Selection Screen)
+   [003] شاشة اختيار المجموعة
    ========================================================================== */
 
 #group-selection-screen {
@@ -702,14 +698,14 @@ html, body {
   box-sizing: border-box;
 }
 
-/* تصميم أزرار المجموعات */
+/* 🎨 تصميم أزرار المجموعات - مع hover قوي وواضح */
 .group-btn {
   background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
   border: 2px solid #444444;
   border-radius: 12px;
   padding: 12px 8px;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -720,10 +716,19 @@ html, body {
   outline: none;
 }
 
+/* ✨ Hover قوي وواضح */
 .group-btn:hover {
-  border-color: #ffcc00;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(255, 204, 0, 0.25);
+  border-color: #ffcc00 !important;
+  transform: translateY(-4px) scale(1.04) !important;
+  box-shadow:
+    0 8px 24px rgba(255, 204, 0, 0.45),
+    0 0 30px rgba(255, 204, 0, 0.25) !important;
+  background: linear-gradient(145deg, #3a3a3a, #2a2a2a) !important;
+}
+
+.group-btn:hover .group-letter {
+  text-shadow: 0 0 18px rgba(255, 204, 0, 0.9);
+  transform: scale(1.1);
 }
 
 .group-btn:active {
@@ -736,6 +741,7 @@ html, body {
   font-weight: bold;
   color: #ffcc00;
   line-height: 1;
+  transition: transform 0.25s ease, text-shadow 0.25s ease;
 }
 
 .group-label {
@@ -746,11 +752,19 @@ html, body {
   white-space: nowrap;
 }
 
+/* 📱 على الموبايل: :active بيعطي نفس الإحساس */
+@media (hover: none) {
+  .group-btn:active {
+    transform: scale(0.96);
+    border-color: #ffcc00;
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4);
+  }
+}
+
 /* --------------------------------------------------------------------------
-   التكيف الذكي حسب اتجاه الشاشة (Orientation Queries)
+   التكيف حسب اتجاه الشاشة
    -------------------------------------------------------------------------- */
 
-/* 📱 الشاشة بالطول (Portrait): الضلع الأطول هو الارتفاع -> 3 صفوف × 2 عمود */
 @media (orientation: portrait) {
   #group-buttons {
     grid-template-columns: repeat(2, 1fr);
@@ -758,14 +772,12 @@ html, body {
   }
 }
 
-/* 🔄 الشاشة بالعرض (Landscape): الضلع الأطول هو العرض -> 2 صف × 3 أعمدة */
 @media (orientation: landscape) {
   #group-buttons {
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(2, auto);
   }
 
-  /* ضغط المسافات العلوية لمنع الـ Scroll في الوضع العرضي */
   #main-logo {
     width: 100px;
     margin-bottom: 8px;
@@ -780,7 +792,6 @@ html, body {
     padding: 8px 4px;
   }
 }
-
 
 /* [004] عارض PDF */
 #pdf-overlay {
@@ -869,12 +880,10 @@ html, body {
   background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
 }
 
-/* إخفاء شريط الأدوات عند تفعيل وضع "العين" */
 #pdf-overlay.toolbar-hidden #toolbar {
   display: none !important;
 }
 
-/* توسعة الـ iframe ليملأ كامل المساحة عند إخفاء الشريط */
 #pdf-overlay.toolbar-hidden #pdfFrame {
   height: 100vh !important;
 }
@@ -1475,7 +1484,7 @@ img, image, svg, rect {
 }
 
 /* ========================================
-   🏆 Live Leaderboard - تحت اللعبة
+   🏆 Live Leaderboard
    ======================================== */
 #live-leaderboard-section {
   background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(20,20,40,0.95));
@@ -1635,7 +1644,7 @@ img, image, svg, rect {
    🚫 تعطيل تأثيرات الـ Hover عند إيقاف السويتش
    ============================================ */
 
-/* المستطيلات - ترجع للـ base (2px) بدون glow */
+/* المستطيلات - ترجع للـ base بدون glow */
 body.disable-hover .m:hover {
   filter: none !important;
   stroke-width: 2px !important;
@@ -1655,9 +1664,15 @@ body.disable-hover .is:hover {
   transform: none !important;
 }
 
-/* تعطيل hover على أزرار المجموعات */
+/* تعطيل hover على أزرار المجموعات - رجوع للحالة الأساسية */
 body.disable-hover .group-btn:hover {
   transform: none !important;
   box-shadow: none !important;
   border-color: #444444 !important;
+  background: linear-gradient(145deg, #2a2a2a, #1a1a1a) !important;
+}
+
+body.disable-hover .group-btn:hover .group-letter {
+  text-shadow: none !important;
+  transform: none !important;
 }
