@@ -17,6 +17,78 @@ let dragActive = false;
 let startX, startY, initialLeft, initialTop;
 let currentBlobUrl = null; // لتتبع الـ Blob URL النشط ومسحه من الذاكرة
 
+// ══════════════════════════════════════════════════════════════
+// 🆕 PWA Detection + Device Open Handler
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * هل التطبيق شغال في وضع PWA (مثبت على الشاشة الرئيسية)؟
+ * بيغطي Android (Chrome PWA) + iOS (Safari standalone)
+ */
+function isPWAMode() {
+    return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        window.matchMedia('(display-mode: minimal-ui)').matches ||
+        window.navigator.standalone === true  // iOS
+    );
+}
+
+/**
+ * فتح PDF بـ "Open with" بتاع الجهاز (شير شيت بيحتوي على كل التطبيقات)
+ * - Android: Web Share API بيعرض كل تطبيقات PDF
+ * - iOS: Share sheet فيه "Copy to Files", "Books", ...
+ * - Fallback: تنزيل الملف (بعدها المستخدم يفتحه بأي تطبيق)
+ */
+async function openWithDeviceHandler(pdfUrl, fileName) {
+    console.log('📱 [PWA] Device handler opening:', fileName);
+
+    // ── المحاولة 1: Web Share API ──
+    try {
+        const response = await fetch(pdfUrl, { mode: 'cors' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const blob = await response.blob();
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+                files: [file],
+                title: fileName,
+            });
+            console.log('✅ Shared via Web Share API');
+            return true;
+        } else {
+            console.warn('⚠️ canShare(files) = false');
+        }
+    } catch (e) {
+        // AbortError = المستخدم قفل الشير شيت، ده مش خطأ
+        if (e.name === 'AbortError') {
+            console.log('ℹ️ User cancelled share');
+            return true;
+        }
+        console.warn('⚠️ Web Share API failed:', e);
+    }
+
+    // ── المحاولة 2: Download link ──
+    try {
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = fileName;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => document.body.removeChild(a), 100);
+        console.log('✅ Downloaded — check Downloads folder');
+        return true;
+    } catch (e) {
+        console.error('❌ Download failed:', e);
+        return false;
+    }
+}
+
 // ---------- معاينة PDF (محدثة بجودة عالية) ----------
 export async function showPDFPreview(item) {
     if (!item || !item.path) return;
