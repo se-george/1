@@ -23,8 +23,8 @@ wed: { transform: 'translate(0,1828)', slots: [
 { cls: 'm l', href: './Biochemistry/Lecture/c_overview-am.pdf' },
 { cls: 'm s', href: './Biochemistry/Section/07 & 8.pdf'},],
       sun: [
-{cls : 'm s', href: './Introduction to Computing/Section/???.pdf'},
-{cls:'m l',href:'./Business/Lecture/ch. 5.pdf'}, 'o'],
+{cls: 'm s', href: './CCS/Section/???.pdf'},
+{cls: 'm l',href:'./Business/Lecture/ch. 5.pdf'}, {cls: 'm l', href: './IS/Lecture/E-commerce'},],
       tue: ['o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
@@ -35,14 +35,14 @@ wed: { transform: 'translate(0,1828)', slots: [
       tue: ['o', 'o', 'o', 'x'],
       wed: [
 { cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
-{ cls: 'm l', href: './Introduction to Computing/Lecture/c_overview-am.pdf' },],},
+{ cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],},
 
     7: {
       sat: ['o', 'x', 'x'],
       sun: ['x', 'x', 'x'],
       tue: ['x', 'x', 'x', 'x'],
       wed: [
-{ cls: 'm l', href: './Introduction to Computing/Lecture/Problem Solving.pdf' },
+{ cls: 'm l', href: './CCS/Lecture/Problem Solving.pdf' },
         'x',
       ],
     },
