@@ -210,3 +210,15 @@ self.addEventListener('message', (event) => {
 });
 
 console.log(`%c✅ Service Worker v2.0 محمّل - الكاش: ${CACHE_NAME}`, 'color: #00ff00; font-weight: bold;');
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys =>
+            Promise.all(keys.map(key => {
+                if (key !== CACHE_NAME) {
+                    console.log(`🗑️ حذف كاش قديم: ${key}`);
+                    return caches.delete(key);
+                }
+            }))
+        ).then(() => self.clients.claim())
+    );
+});
