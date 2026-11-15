@@ -185,38 +185,87 @@ document.addEventListener('DOMContentLoaded', () => {
 export { scan };
 
 // ==========================================
-// PWA Install Prompt Handler
+// PWA Install Prompt Handler (Robust)
 // ==========================================
-let deferredPrompt;
+let deferredPrompt = null;
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-
-  const installBtn = document.getElementById('pwa-install-btn');
-  if (installBtn) {
+function showPWAInstallButton() {
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (!installBtn) {
+        console.warn('⚠️ #pwa-install-btn مش موجود في HTML');
+        return;
+    }
     installBtn.style.display = 'inline-flex';
 
-    installBtn.addEventListener('click', () => {
-      installBtn.style.display = 'none';
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('✅ المستخدم وافق على تثبيت التطبيق');
-        } else {
-          console.log('❌ المستخدم رفض تثبيت التطبيق');
-        }
-        deferredPrompt = null;
-      });
-    });
-  }
+    // ربط الـ click مرة واحدة بس
+    if (!installBtn.dataset.bound) {
+        installBtn.dataset.bound = 'true';
+        installBtn.addEventListener('click', async () => {
+            const promptEvent = deferredPrompt || window._pwaPrompt;
+            if (!promptEvent) {
+                console.warn('⚠️ prompt غير متاح');
+                return;
+            }
+            installBtn.style.display = 'none';
+            try {
+                promptEvent.prompt();
+                const result = await promptEvent.userChoice;
+                console.log('📲 نتيجة التثبيت:', result.outcome);
+                if (result.outcome !== 'accepted') {
+                    // لو رفض، نخلي الزر يرجع بعد شوية
+                    setTimeout(() => {
+                        const btn = document.getElementById('pwa-install-btn');
+                        if (btn && !window.matchMedia('(display-mode: standalone)').matches) {
+                            btn.style.display = 'inline-flex';
+                        }
+                    }, 30000);
+                }
+            } catch (err) {
+                console.error('❌ خطأ في prompt():', err);
+            }
+            deferredPrompt = null;
+            window._pwaPrompt = null;
+        });
+    }
+}
+
+// 1) استقبال الحدث
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    window._pwaPrompt = e;
+    console.log('✅ beforeinstallprompt جاهز');
+    showPWAInstallButton();
 });
 
-window.addEventListener('appinstalled', () => {
-  deferredPrompt = null;
-  const installBtn = document.getElementById('pwa-install-btn');
-  if (installBtn) {
-    installBtn.style.display = 'none';
-  }
-  console.log('🎉 تم تثبيت التطبيق بنجاح');
+// 2) الـ inline script في index.html بيبعت الحدث ده كـ fallback
+window.addEventListener('pwaInstallReady', () => {
+    if (window._pwaPrompt) {
+        deferredPrompt = window._pwaPrompt;
+        showPWAInstallButton();
+    }
 });
+
+// 3) لو الحدث اتطلق قبل ما الملف يتحمّل
+document.addEventListener('DOMContentLoaded', () => {
+    if (window._pwaPrompt) {
+        deferredPrompt = window._pwaPrompt;
+        showPWAInstallButton();
+    }
+});
+
+// 4) بعد التثبيت
+window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    window._pwaPrompt = null;
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) installBtn.style.display = 'none';
+    console.log('🎉 تم تثبيت التطبيق بنجاح');
+});
+
+// 5) لو التطبيق مفتوح في وضع standalone (متثبت بالفعل) → نخفي الزر
+if (window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true) {
+    const installBtn = document.getElementById('pwa-install-btn');
+    if (installBtn) installBtn.style.display = 'none';
+}
