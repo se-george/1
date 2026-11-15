@@ -1,7 +1,7 @@
 {
-  "name": "خريطة المنهج - s1",
+  "name": "خريطة المنهج CS - ترم 1",
   "short_name": "S1 Map",
-  "description": "خريطة تفاعلية لعرض محاضرات وسكاشن الفرقة الأولي",
+  "description": "خريطة تفاعلية لعرض محاضرات وسكاشن الفرقة الأولى",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
