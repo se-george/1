@@ -54,11 +54,6 @@
   <!-- PWA Manifest -->
   <link rel="manifest" href="manifest.json">
 
-<!-- 📲 زر تثبيت PWA -->
-<button id="pwa-install-btn" type="button"
-        style="display: none; position: fixed; top: 20px; left: 20px; z-index: 100;">
-  📲 تثبيت التطبيق
-</button>
   <!-- Styles -->
   <link rel="stylesheet" href="style.css">
 
@@ -100,6 +95,7 @@
   </div>
   <button class="banner-close" id="ios-banner-close">✕</button>
 </div>
+
 <!-- ================ جميع عناصر الواجهة ================ -->
 
 <!-- شاشة اختيار طريقة الفتح -->
@@ -188,17 +184,14 @@
     <div class="controls">
       <button class="control-btn" id="leftBtn">➡️</button>
       <button class="control-btn" id="rightBtn">⬅️</button>
-      </div>
+    </div>
 
     <!-- ========================================
          🏆 Top 5 الحية - تحت اللعبة دائماً
-         تُحمَّل من الكاش فوراً ثم تُحدَّث من السحابة
     ========================================= -->
     <div id="live-leaderboard-section">
       <div class="live-lb-header">
-        <span class="live-lb-title">
-.
-🏆 أفضل 5 لاعبين</span>
+        <span class="live-lb-title">🏆 أفضل 5 لاعبين</span>
         <span class="live-lb-status" id="liveLeaderboardStatus">⏳ جاري التحميل...</span>
       </div>
       <div class="live-lb-scroll">
@@ -263,6 +256,12 @@
 </div>
 
 <div id="eye-toggle-standalone" class="top">👁️</div>
+
+<!-- 📲 زر تثبيت PWA (جوه body — HTML صالح) -->
+<button id="pwa-install-btn" type="button"
+        style="display: none; position: fixed; top: 20px; left: 20px; z-index: 100;">
+  📲 تثبيت التطبيق
+</button>
 
 <!-- شاشة التحميل -->
 <div id="loading-overlay">
@@ -334,11 +333,12 @@
         <text x="512" y="195" id="back-btn-text" text-anchor="middle" dominant-baseline="middle">➡️ إلى الخريطة ➡️</text>
       </g>
       <g class="update-section" style="text-align: center; margin: 20px;">
-    <button id="check-update-btn" style="padding: 10px 20px; background-color: #ffca28; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-        🔄 التحقق من وجود تحديثات
-    </button>
-    <p id="update-status-text" style="margin-top: 10px; font-size: 14px; color: #555;"></p>
-  </g>  </g>
+        <button id="check-update-btn" style="padding: 10px 20px; background-color: #ffca28; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+          🔄 التحقق من وجود تحديثات
+        </button>
+        <p id="update-status-text" style="margin-top: 10px; font-size: 14px; color: #555;"></p>
+      </g>
+    </g>
   </svg>
 </div>
 <!-- ======================== نهاية عناصر الواجهة ======================== -->
@@ -429,6 +429,7 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) checkForUpdates();
 });
 </script>
+
 <!-- PWA Install Prompt Listener -->
 <script>
 (function () {
@@ -436,6 +437,7 @@ document.addEventListener('visibilitychange', () => {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     window._pwaPrompt = e;
+    console.log('✅ [inline] beforeinstallprompt جاهز');
     window.dispatchEvent(new Event('pwaInstallReady'));
   });
   window.addEventListener('appinstalled', () => {
