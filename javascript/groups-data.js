@@ -97,7 +97,7 @@ wed: { transform: 'translate(0,1828)', slots: [
       wed: ['o', 'o'],
     },
   },
-F: {template: {
+A: {template: {
 sat: { transform: 'translate(0,1024)', slots: [
 { x: 1023, y: 2453, w: 1, h: 1 }]},},
 1:  { sat: ['o']}
