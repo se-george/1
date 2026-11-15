@@ -21,7 +21,7 @@ const FILES_TO_LOAD = [
     './javascript/features/svg-processor.js',
     './image/wood.webp',
     './image/Upper_wood.webp',
-    './javascript/core/groups-data.js',
+    './groups-data.js',
     './javascript/core/svg-generator.js'
 ];
 
