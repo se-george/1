@@ -11,7 +11,7 @@ const urlsToCache = [
    './javascript/core/group-loader.js',
    './javascript/core/state.js',
    './javascript/core/svg-generator.js',
-   './groups-data.js',
+   './javascript/groups-data.js',
    './javascript/ui/pdf-viewer.js',
    './javascript/ui/wood-interface.js',
    './javascript/ui/search-and-eye.js',
