@@ -24,7 +24,7 @@ wed: { transform: 'translate(0,1828)', slots: [
 { cls: 'm s', href: './Biochemistry/Section/07 & 8.pdf'},],
       sun: [
 {cls: 'm s', href: './CCS/Section/???.pdf'},
-{cls: 'm l',href:'./Business/Lecture/ch. 5.pdf'},
+{cls: 'm l',href:'./Business/Lecture/Business Management.pdf'},
 {cls: 'm l', href: './IS/Lecture/E-commerce'},],
       tue: ['o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
