@@ -1,4 +1,8 @@
 const CACHE_NAME = 'semester-1-cache-v69';
+
+// 🆕 رابط شجرة الملفات (يُستخدم للـ pre-cache ولمطابقة الـ cache)
+const TREE_API_URL = 'https://api.github.com/repos/se-george/1/git/trees/main?recursive=1';
+
 const urlsToCache = [
    './',
    './index.html',
@@ -28,6 +32,38 @@ const urlsToCache = [
    './image/Upper_wood.webp'
 ];
 
+// 🆕 هل يمكن تخزين هذه الاستجابة؟
+// - basic: same-origin (200 OK)
+// - cors:  cross-origin with CORS (200 OK)  ← كان مفقود → سبب المشكلة
+// - opaque: cross-origin no-cors (status=0) ← الصور الخارجية
+function canCacheResponse(response) {
+    if (!response) return false;
+    if (response.type === 'opaque') return true;
+    if ((response.type === 'basic' || response.type === 'cors') && response.ok) return true;
+    return false;
+}
+
+function shouldCache(url) {
+    try {
+        const pathname = new URL(url).pathname;
+
+        // لا نحفظ Service Worker نفسه
+        if (pathname.includes('sw.js')) return false;
+
+        // 🆕 شجرة GitHub Trees API
+        if (pathname.includes('/git/trees/')) return true;
+
+        // ملفات المشروع
+        if (pathname.includes('/javascript/')) return true;
+        if (pathname.includes('/image/')) return true;
+        if (pathname.match(/\.(html|css|js|webp|png|jpg|jpeg|svg|pdf|json)$/)) return true;
+
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
 self.addEventListener('install', event => {
     console.log('🔧 Service Worker: تثبيت الإصدار', CACHE_NAME);
     event.waitUntil(
@@ -39,6 +75,17 @@ self.addEventListener('install', event => {
                 })
             ))
         ).then(() => {
+            // 🆕 تخزين شجرة الملفات مسبقاً (عشان تشتغل أوفلاين من أول مرة)
+            return fetch(TREE_API_URL, { cache: 'no-store' })
+                .then(res => {
+                    if (res && res.ok) {
+                        return caches.open(CACHE_NAME)
+                            .then(cache => cache.put(TREE_API_URL, res.clone()));
+                    }
+                    console.warn('⚠️ شجرة الملفات رجعت status:', res && res.status);
+                })
+                .catch(err => console.warn('⚠️ تعذر pre-cache الشجرة:', err));
+        }).then(() => {
             console.log('✅ Service Worker: تم التثبيت بنجاح');
             return self.skipWaiting();
         })
@@ -56,7 +103,7 @@ self.addEventListener('activate', event => {
                 }
                 return null;
             }).filter(Boolean);
-            
+
             return Promise.all(deletePromises);
         }).then(() => {
             console.log('✅ Service Worker: تم التفعيل');
@@ -85,20 +132,20 @@ self.addEventListener('fetch', event => {
             if (cached) {
                 // محاولة التحديث في الخلفية بأمان
                 fetch(event.request).then(response => {
-                    if (shouldCache(event.request.url) && response && response.status === 200 && response.type === 'basic') {
+                    if (shouldCache(event.request.url) && canCacheResponse(response)) {
                         const responseToCache = response.clone();
                         caches.open(CACHE_NAME).then(cache => {
                             try { cache.put(event.request, responseToCache); } catch (e) {}
                         });
                     }
                 }).catch(() => {});
-                
+
                 return cached;
             }
 
-            // إذا لم يكن في الكاش، نجلبه من الشبكة ونخزنه بـ clone() آمن
+            // إذا لم يكن في الكاش، نجلبه من الشبكة ونخزنه
             return fetch(event.request).then(response => {
-                if (shouldCache(event.request.url) && response && response.status === 200 && response.type === 'basic') {
+                if (shouldCache(event.request.url) && canCacheResponse(response)) {
                     const responseToCache = response.clone();
                     caches.open(CACHE_NAME).then(cache => {
                         try { cache.put(event.request, responseToCache); } catch (e) {}
@@ -106,7 +153,7 @@ self.addEventListener('fetch', event => {
                 }
                 return response;
             }).catch(() => {
-                // إذا فشل كل شيء وتوقف الاتصال (Offline)
+                // Offline fallback
                 if (event.request.destination === 'document') {
                     return new Response(
                         `<!DOCTYPE html>
@@ -127,10 +174,7 @@ self.addEventListener('fetch', event => {
                                     color: white;
                                     text-align: center;
                                 }
-                                .container {
-                                    max-width: 500px;
-                                    padding: 40px;
-                                }
+                                .container { max-width: 500px; padding: 40px; }
                                 h1 { font-size: 48px; margin: 0; }
                                 p { font-size: 18px; margin: 20px 0; }
                                 button {
@@ -155,12 +199,12 @@ self.addEventListener('fetch', event => {
                             </div>
                         </body>
                         </html>`,
-                        { 
-                            status: 503, 
-                            headers: { 
+                        {
+                            status: 503,
+                            headers: {
                                 'Content-Type': 'text/html; charset=utf-8',
                                 'Cache-Control': 'no-cache'
-                            } 
+                            }
                         }
                     );
                 }
@@ -170,30 +214,12 @@ self.addEventListener('fetch', event => {
     );
 });
 
-function shouldCache(url) {
-    try {
-        const pathname = new URL(url).pathname;
-        
-        // لا نحفظ Service Worker نفسه
-        if (pathname.includes('sw.js')) return false;
-        
-        // نحفظ الملفات المهمة
-        if (pathname.includes('/javascript/')) return true;
-        if (pathname.includes('/image/')) return true;
-        if (pathname.match(/\.(html|css|js|webp|png|jpg|jpeg|svg|pdf|json)$/)) return true;
-        
-        return false;
-    } catch (e) {
-        return false;
-    }
-}
-
 self.addEventListener('message', (event) => {
     if (event.data && event.data.action === 'skipWaiting') {
         console.log('⏭️ تخطي الانتظار وتفعيل SW الجديد');
         self.skipWaiting();
     }
-    
+
     if (event.data && event.data.action === 'clearCache') {
         console.log('🗑️ طلب مسح الكاش');
         event.waitUntil(
@@ -209,16 +235,4 @@ self.addEventListener('message', (event) => {
     }
 });
 
-console.log(`%c✅ Service Worker v2.0 محمّل - الكاش: ${CACHE_NAME}`, 'color: #00ff00; font-weight: bold;');
-self.addEventListener('activate', event => {
-    event.waitUntil(
-        caches.keys().then(keys =>
-            Promise.all(keys.map(key => {
-                if (key !== CACHE_NAME) {
-                    console.log(`🗑️ حذف كاش قديم: ${key}`);
-                    return caches.delete(key);
-                }
-            }))
-        ).then(() => self.clients.claim())
-    );
-});
+console.log(`%c✅ Service Worker v2.1 محمّل - الكاش: ${CACHE_NAME}`, 'color: #00ff00; font-weight: bold;');
