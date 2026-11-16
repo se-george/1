@@ -122,7 +122,7 @@ export function startHover() {
         zText.style.fill = 'white';
         zText.style.fontWeight = 'bold';
         zText.style.pointerEvents = 'none';
-        zText.style.fontSize = (parseFloat(bText.style.fontSize || 10) * 2) + 'px';
+        zText.style.fontSize = (parseFloat(bText.style.fontSize || 10) * 8) + 'px';
 
         mainSvg.appendChild(zText);
         const bbox = zText.getBBox();
