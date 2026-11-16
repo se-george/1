@@ -1,5 +1,7 @@
 // ============================================
 // svg-processor.js - معالجة مستطيلات SVG وإضافة التأثيرات
+// ✅ مع إصلاح "الكروب زوم" (getCumulativeTranslate)
+// ✅ مع دعم سويتش الـ Hover (disable-hover)
 // ============================================
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
@@ -87,11 +89,14 @@ export function startHover() {
         zPart.setAttribute('height', imgData.height);
         zPart.setAttribute('clip-path', `url(#${clipId})`);
 
-        const mTrans = imgData.group.getAttribute('transform')?.match(/translate\s*\(([\d.-]+)[ ,]+([\d.-]+)\s*\)/);
-        const imgTransX = mTrans ? parseFloat(mTrans[1]) : 0;
-        const imgTransY = mTrans ? parseFloat(mTrans[2]) : 0;
-        zPart.setAttribute('x', imgTransX + imgData.x);
-        zPart.setAttribute('y', imgTransY + imgData.y);
+        // ✅ الإصلاح الجوهري: استخدام cumulative translate بدل الأب المباشر فقط
+        // (ده اللي بيخلي صورة الزوم تظهر في المكان الصح حتى لو الـ image متعمّقة في <g>s)
+        const imgCum = getCumulativeTranslate(imgData.group);
+        const imgX = parseFloat(imgData.x) || 0;
+        const imgY = parseFloat(imgData.y) || 0;
+        zPart.setAttribute('x', imgCum.x + imgX);
+        zPart.setAttribute('y', imgCum.y + imgY);
+
         zPart.style.pointerEvents = 'none';
         zPart.style.transformOrigin = `${centerX}px ${absY + rH / 2}px`;
         zPart.style.transform = `scale(${scaleFactor})`;
@@ -100,6 +105,7 @@ export function startHover() {
         activeState.zoomPart = zPart;
     }
 
+    // نص مكبّر + خلفية
     let bText = rect.parentNode.querySelector(`.rect-label[data-original-for='${rect.dataset.href}']`);
     if (bText) {
         bText.style.opacity = '0';
@@ -136,6 +142,7 @@ export function startHover() {
         activeState.zoomBg = zBg;
     }
 
+    // Glow متحرك
     let h = 0;
     let step = 0;
     activeState.animationId = setInterval(() => {
@@ -153,6 +160,9 @@ export function startHover() {
 export function processRect(r) {
     if (r.hasAttribute('data-processed')) return;
 
+    if (r.classList.contains('w')) r.setAttribute('width', '113.5');
+    if (r.classList.contains('hw')) r.setAttribute('width', '56.75');
+
     let href = r.getAttribute('data-href') || '';
     if (href && href !== '#' && !href.startsWith('http')) {
         href = `${RAW_CONTENT_BASE}${href}`;
@@ -164,7 +174,6 @@ export function processRect(r) {
     const name = dataFull || fileName || '';
 
     const w = parseFloat(r.getAttribute('width')) || r.getBBox().width;
-
     const x = parseFloat(r.getAttribute('x')) || 0;
     const y = parseFloat(r.getAttribute('y')) || 0;
 
@@ -225,7 +234,8 @@ export function processRect(r) {
     if (scrollContainer) {
         r.addEventListener('touchstart', function (e) {
             if (!interactionEnabled) return;
-            if (document.body.classList.contains('disable-hover')) return;  // 🆕
+            // 🆕 فحص سويتش الـ Hover
+            if (document.body.classList.contains('disable-hover')) return;
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
             startHover.call(this);
@@ -280,7 +290,6 @@ export function scan() {
         }
     });
 
-    // مراقب الإضافات الجديدة
     if (!window.svgObserver) {
         const observer = new MutationObserver((mutations) => {
             let hasNewElements = false;
@@ -301,7 +310,6 @@ export function scan() {
                 });
             });
             if (hasNewElements) {
-                console.log('🔄 تم اكتشاف عناصر جديدة - تحديث viewBox');
                 import('../core/group-loader.js').then(({ updateDynamicSizes }) => {
                     updateDynamicSizes();
                 });
