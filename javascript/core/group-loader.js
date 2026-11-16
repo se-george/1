@@ -18,14 +18,54 @@ let loadingProgress = {
 // ---------- شجرة الملفات ----------
 export async function fetchGlobalTree() {
     if (globalFileTree.length > 0) return;
+
+    // 1) محاولة الجلب (SW هيتدخل بـ Cache First)
     try {
         const response = await fetch(TREE_API_URL);
+        if (!response.ok) throw new Error(`API status ${response.status}`);
+
         const data = await response.json();
-        setGlobalFileTree(data.tree || []);
-        console.log("✅ تم تحميل شجرة الملفات:", globalFileTree.length);
+
+        if (data.tree && data.tree.length > 0) {
+            setGlobalFileTree(data.tree);
+            console.log("✅ تم تحميل شجرة الملفات:", globalFileTree.length);
+
+            // 🆕 حفظ نسخة احتياطية دائمة في localStorage
+            try {
+                const treeStr = JSON.stringify(data.tree);
+                // تجنّب تجاوز حدود localStorage (~5MB)
+                if (treeStr.length < 4 * 1024 * 1024) {
+                    localStorage.setItem('cached_file_tree', treeStr);
+                    localStorage.setItem('cached_file_tree_time', Date.now().toString());
+                } else {
+                    console.warn('⚠️ الشجرة أكبر من 4MB — تخطي حفظها محلياً');
+                }
+            } catch (e) {
+                console.warn('⚠️ فشل حفظ الشجرة في localStorage:', e);
+            }
+            return;
+        }
     } catch (err) {
-        console.error("❌ خطأ في الاتصال بـ GitHub:", err);
+        console.warn("⚠️ فشل جلب الشجرة - محاولة الـ fallback:", err);
     }
+
+    // 2) 🆕 Fallback من localStorage (وضع أوفلاين)
+    try {
+        const cached = localStorage.getItem('cached_file_tree');
+        if (cached) {
+            const tree = JSON.parse(cached);
+            if (Array.isArray(tree) && tree.length > 0) {
+                setGlobalFileTree(tree);
+                console.log("📦 شجرة الملفات من الكاش المحلي:", tree.length);
+                return;
+            }
+        }
+    } catch (e) {
+        console.error('❌ فشل قراءة الكاش المحلي:', e);
+    }
+
+    // 3) لا شيء متاح
+    console.warn("⚠️ لا توجد شجرة ملفات متاحة (أول زيارة أوفلاين؟)");
 }
 
 // ---------- حفظ وتحميل المجموعة ----------
@@ -226,7 +266,6 @@ export async function initializeGroup(groupLetter) {
 
     if (previousGroup && previousGroup !== groupLetter) {
         console.log(`🔄 تم تغيير الجروب من ${previousGroup} إلى ${groupLetter}`);
-        // ملاحظة: لم نعد نحتاج لمسح كاش مجموعة محددة - SW يتولى الكاش الموحّد
     }
 
     saveSelectedGroup(groupLetter);
@@ -255,8 +294,6 @@ export async function initializeGroup(groupLetter) {
 }
 
 // ---------- تحميل الصور ----------
-// ✅ بعد التحسين: يعتمد بالكامل على Service Worker للكاش (Cache First)
-// لا يوجد كاش موازي ولا تتعارض مع ترقيات sw.js
 export async function loadImages() {
     const mainSvg = document.getElementById('main-svg');
     if (!mainSvg) return;
@@ -285,7 +322,7 @@ export async function loadImages() {
                     const dataSrc = si.getAttribute('data-src');
                     if (dataSrc === url) {
                         si.setAttribute('href', this.src);
-                        si.removeAttribute('data-src'); // منع إعادة المعالجة
+                        si.removeAttribute('data-src');
                     }
                 });
                 console.log(`✅ تم تحديث الصورة: ${url.split('/').pop()}`);
@@ -302,7 +339,6 @@ export async function loadImages() {
                 resolve();
             };
 
-            // SW سيتدخل: Cache First → يجلب من الكاش أو الشبكة ويحفظ تلقائياً
             img.src = url;
         });
     }
