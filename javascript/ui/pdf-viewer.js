@@ -42,13 +42,13 @@ export async function showPDFPreview(item) {
     if (filenameEl) {
         filenameEl.textContent = fileName.length > 30 ? fileName.substring(0, 27) + '...' : fileName;
     }
-    
+
     if (loading) {
         loading.classList.remove('hidden');
         loading.style.display = 'block';
         loading.textContent = 'جاري تحضير المعاينة...';
     }
-    
+
     canvas.style.display = 'none';
 
     // إزالة أي صورة معاينة قديمة
@@ -276,7 +276,7 @@ export function openWithBrowser(item) {
     }
 
     const url = `${RAW_CONTENT_BASE}${item.path}`;
-    
+
     // استخدام عنصر <a> محاكى لضمان عدم حظر النوافذ المنبثقة
     const a = document.createElement('a');
     a.href = url;
@@ -335,7 +335,6 @@ export function initPDFViewer() {
 
     const methodPopup = document.getElementById('open-method-popup');
     const methodCloseBtn = document.getElementById('method-close-btn');
-    const mozillaBtn = document.getElementById('open-mozilla-btn');
     const browserBtn = document.getElementById('open-browser-btn');
     const driveBtn = document.getElementById('open-drive-btn');
 
@@ -352,15 +351,6 @@ export function initPDFViewer() {
             if (e.target === methodPopup) {
                 closeOpenOptions();
                 currentPreviewItem = null;
-            }
-        });
-    }
-
-    if (mozillaBtn) {
-        mozillaBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentPreviewItem) {
-                openWithMozilla(currentPreviewItem);
             }
         });
     }
