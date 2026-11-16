@@ -39,8 +39,6 @@ export function cleanupHover() {
 // ---------- بدء تأثير الهوفر ----------
 export function startHover() {
     if (!interactionEnabled || this.classList.contains('list-item')) return;
-
-    // 🆕 فحص سويتش الـ Hover - لو متقفل، لا تعمل أي تأثير
     if (document.body.classList.contains('disable-hover')) return;
 
     const mainSvg = document.getElementById('main-svg');
@@ -59,7 +57,11 @@ export function startHover() {
     const absX = (parseFloat(rect.getAttribute('x')) || 0) + cum.x;
     const absY = (parseFloat(rect.getAttribute('y')) || 0) + cum.y;
     const centerX = absX + rW / 2;
-    const scaleFactor = 1.1;
+
+    // ✅ التوازن بين المستطيل المكبّر والنص
+    const scaleFactor = 1.45;
+    const scaledW = rW * scaleFactor;
+    const scaledH = rH * scaleFactor;
     const yOffset = (rH * (scaleFactor - 1)) / 2;
     const hoveredY = absY - yOffset;
 
@@ -68,8 +70,9 @@ export function startHover() {
 
     rect.style.transformOrigin = `${rectX + rW / 2}px ${rectY + rH / 2}px`;
     rect.style.transform = `scale(${scaleFactor})`;
-    rect.style.strokeWidth = '4px';
+    rect.style.strokeWidth = '5px';
 
+    // ── صورة الزوم ──
     const imgData = getGroupImage(rect);
     if (imgData && imgData.src) {
         const clipId = `clip-${Date.now()}`;
@@ -89,8 +92,6 @@ export function startHover() {
         zPart.setAttribute('height', imgData.height);
         zPart.setAttribute('clip-path', `url(#${clipId})`);
 
-        // ✅ الإصلاح الجوهري: استخدام cumulative translate بدل الأب المباشر فقط
-        // (ده اللي بيخلي صورة الزوم تظهر في المكان الصح حتى لو الـ image متعمّقة في <g>s)
         const imgCum = getCumulativeTranslate(imgData.group);
         const imgX = parseFloat(imgData.x) || 0;
         const imgY = parseFloat(imgData.y) || 0;
@@ -105,7 +106,7 @@ export function startHover() {
         activeState.zoomPart = zPart;
     }
 
-    // نص مكبّر + خلفية
+    // ── النص المكبّر (8x زي ما هو) ──
     let bText = rect.parentNode.querySelector(`.rect-label[data-original-for='${rect.dataset.href}']`);
     if (bText) {
         bText.style.opacity = '0';
@@ -122,33 +123,60 @@ export function startHover() {
         zText.style.fill = 'white';
         zText.style.fontWeight = 'bold';
         zText.style.pointerEvents = 'none';
+        zText.style.fontFamily = "'Segoe UI', Tahoma, sans-serif";
+        // ✅ 8x زي ما هو - مش هيتم تغييره
         zText.style.fontSize = (parseFloat(bText.style.fontSize || 10) * 8) + 'px';
 
         mainSvg.appendChild(zText);
         const bbox = zText.getBBox();
 
+        // ══════════════════════════════════════════════════════
+        // ✅ الإطار الجديد: متناسب مع النص 8x + المستطيل المكبّر
+        // ══════════════════════════════════════════════════════
+
+        // padding يتحرك مع حجم النص (8x = محتاج padding كبير)
+        const paddingX = Math.max(bbox.width * 0.20, 60);   // 20% من عرض النص أو 60px (الأكبر)
+        const paddingY = Math.max(bbox.height * 0.35, 30);  // 35% من ارتفاع النص أو 30px (الأكبر)
+
+        // عرض الإطار = (عرض النص + padding) أو (عرض المستطيل المكبّر + هامش) - الأكبر
+        const zBgW = Math.max(
+            bbox.width + paddingX * 2,
+            scaledW + 40   // 40px هامش جانبي على الأقل
+        );
+
+        // ارتفاع الإطار = ارتفاع النص + padding
+        const zBgH = bbox.height + paddingY * 2;
+
+        // موضع الإطار: متمركز أفقياً، فوق المستطيل المكبّر بفاصل واضح
+        const zBgX = centerX - zBgW / 2;
+        const zBgY = hoveredY - zBgH - 20;   // 20px فاصل بين الإطار والمستطيل
+
         const zBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        zBg.setAttribute('x', centerX - (bbox.width + 20) / 2);
-        zBg.setAttribute('y', hoveredY);
-        zBg.setAttribute('width', bbox.width + 20);
-        zBg.setAttribute('height', bbox.height + 10);
-        zBg.setAttribute('rx', '5');
-        zBg.style.fill = 'black';
+        zBg.setAttribute('x', zBgX);
+        zBg.setAttribute('y', zBgY);
+        zBg.setAttribute('width', zBgW);
+        zBg.setAttribute('height', zBgH);
+        zBg.setAttribute('rx', '15');                       // زوايا ناعمة
+        zBg.style.fill = 'rgba(0,0,0,0.94)';
         zBg.style.pointerEvents = 'none';
 
         mainSvg.insertBefore(zBg, zText);
-        zText.setAttribute('y', hoveredY + (bbox.height + 10) / 2);
+
+        // النص في منتصف الإطار بالظبط
+        zText.setAttribute('x', centerX);
+        zText.setAttribute('y', zBgY + zBgH / 2);
+
         activeState.zoomText = zText;
         activeState.zoomBg = zBg;
     }
 
-    // Glow متحرك
+    // ── Glow متحرك ──
     let h = 0;
     let step = 0;
     activeState.animationId = setInterval(() => {
         h = (h + 10) % 360;
         step += 0.2;
-        const glowPower = 10 + Math.sin(step) * 5;
+        const glowPower = 14 + Math.sin(step) * 6;
         const color = `hsl(${h},100%,60%)`;
         rect.style.filter = `drop-shadow(0 0 ${glowPower}px ${color})`;
         if (activeState.zoomPart) activeState.zoomPart.style.filter = `drop-shadow(0 0 ${glowPower}px ${color})`;
