@@ -60,7 +60,7 @@ wed: { transform: 'translate(0,1828)', slots: [
     5: {
       sat: ['o', 'o', 'o'],
       sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/04.pdf' }, 'o'],
+{ cls: 'm l', href: './Business/Lecture/04_Globl Context.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
@@ -68,7 +68,7 @@ wed: { transform: 'translate(0,1828)', slots: [
     4: {
       sat: ['o', 'o', 'o'],
       sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/03.pdf' }, 'o'],
+{ cls: 'm l', href: './Business/Lecture/03_Ownership.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
@@ -76,7 +76,7 @@ wed: { transform: 'translate(0,1828)', slots: [
     3: {
       sat: ['o', 'o', 'o'],
       sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/02.pdf' }, 'o'],
+{ cls: 'm l', href: './Business/Lecture/02_Ethics.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
@@ -84,7 +84,7 @@ wed: { transform: 'translate(0,1828)', slots: [
     2: {
       sat: ['o', 'o', 'o'],
       sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/01.pdf' }, 'o'],
+{ cls: 'm l', href: './Business/Lecture/01_Fundamentals.pdf' }, 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
       wed: ['o', 'o'],
     },
