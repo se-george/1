@@ -31,12 +31,13 @@ wed: { transform: 'translate(0,1828)', slots: [
 { cls: 'm s', href: './Biochemistry/Section/07 & 8.pdf'},],},
 
     8: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 'o', 'o'],
-      tue: ['o', 'o', 'o', 'x'],
-      wed: [
+    wed: [
 { cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
-{ cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],},
+{ cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],
+      tue: ['o', 'o', 'o', 'x'],
+      sun: ['o', 'o', 'o'],
+      sat: ['o', 'o', 'o'],
+  },
  
 
     7: {
