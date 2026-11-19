@@ -1,12 +1,12 @@
 #!/bin/bash
 
 REPO_DIR="/storage/emulated/0/Download/CS26"
-JS_FILE="$REPO_DIR/sw.js" 
+JS_FILE="$REPO_DIR/javascript/core/config.js"
 STATE_FILE="$REPO_DIR/.last_cache_version"
 
 cd "$REPO_DIR" || exit
 
-current_version=$(grep "CACHE_NAME" "$JS_FILE")
+current_version=$(grep "export const SW_CACHE_NAME" "$JS_FILE")
 
 if [ -f "$STATE_FILE" ]; then
     last_version=$(cat "$STATE_FILE")
