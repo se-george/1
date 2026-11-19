@@ -1,7 +1,5 @@
-// ✅ الاسم والرابط يأتيان من config.js عبر رابط التسجيل (sw.js?v=...&tree=...)
 const _params = new URL(self.location.href).searchParams;
-const CACHE_NAME = _params.get('v') || 'semester-4-cache-fallback';
-
+const CACHE_NAME = 'semester-1-cache-v74';
 // 🆕 رابط شجرة الملفات (يُستخدم للـ pre-cache ولمطابقة الـ cache)
 const TREE_API_URL = _params.get('tree') || '';
 
@@ -30,8 +28,7 @@ const urlsToCache = [
    './javascript/features/preload.js',
    './javascript/features/svg-processor.js',
    './image/0.webp',
-   './image/wood.webp',
-   './image/Upper_wood.webp'
+   './image/wood.webp'
 ];
 
 // 🆕 هل يمكن تخزين هذه الاستجابة؟
