@@ -1,5 +1,5 @@
 const _params = new URL(self.location.href).searchParams;
-const CACHE_NAME = 'semester-1-cache-v76';
+const CACHE_NAME = 'semester-1-cache-v77';
 const TREE_API_URL = _params.get('tree') || '';
 
 const urlsToCache = [
