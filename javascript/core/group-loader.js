@@ -195,27 +195,13 @@ export function updateWoodLogo(groupLetter) {
 
     if (currentFolder !== "") return;
 
-    const banner = document.createElementNS("http://www.w3.org/2000/svg", "image");
-    banner.setAttribute("href", `image/logo-wood-${groupLetter}.webp`);
-    banner.setAttribute("x", "197.20201666994924");
-    banner.setAttribute("y", "2074.3139768463334");
-    banner.setAttribute("width", "629.8946370139159");
-    banner.setAttribute("height", "275.78922917259797");
-    banner.setAttribute("class", "wood-banner-animation");
-    banner.style.mixBlendMode = "multiply";
-    banner.style.opacity = "0.9";
-    banner.style.pointerEvents = "auto";
-
-    // 🔥 إخفاء اللوجو في حال عدم وجود الملف بدلاً من إظهار Error 404
-    banner.onerror = () => {
-        banner.remove(); 
-    };
 
     banner.onclick = (e) => {
         e.stopPropagation();
         resetBrowserZoom();
         const groupSelectionScreen = document.getElementById('group-selection-screen');
-        if (groupSelectionScreen) {
+        if (groupSelectionScr)
+        {
             groupSelectionScreen.classList.remove('hidden');
             groupSelectionScreen.style.display = 'flex';
         }
