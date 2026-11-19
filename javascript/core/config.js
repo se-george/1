@@ -16,15 +16,7 @@ export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER
 // الملفات المحمية (لا يتم تحديثها تلقائياً)
 export const PROTECTED_FILES = [
     'image/0.webp',
-    'image/wood.webp',
-    'image/Upper_wood.webp',
-    'image/logo-A.webp',
-    'image/logo-B.webp',
-    'image/logo-C.webp',
-    'image/logo-D.webp',
-    'image/logo-E.webp',
-    'image/logo-F.webp',
-    'image/black.webp'
+    'image/wood.webp'
 ];
 
 export function isProtectedFile(filename) {
