@@ -1,7 +1,9 @@
-const CACHE_NAME = 'semester-1-cache-v74';
+// ✅ الاسم والرابط يأتيان من config.js عبر رابط التسجيل (sw.js?v=...&tree=...)
+const _params = new URL(self.location.href).searchParams;
+const CACHE_NAME = _params.get('v') || 'semester-4-cache-fallback';
 
 // 🆕 رابط شجرة الملفات (يُستخدم للـ pre-cache ولمطابقة الـ cache)
-const TREE_API_URL = 'https://api.github.com/repos/se-george/1/git/trees/main?recursive=1';
+const TREE_API_URL = _params.get('tree') || '';
 
 const urlsToCache = [
    './',
@@ -76,6 +78,7 @@ self.addEventListener('install', event => {
             ))
         ).then(() => {
             // 🆕 تخزين شجرة الملفات مسبقاً (عشان تشتغل أوفلاين من أول مرة)
+            if (!TREE_API_URL) return;
             return fetch(TREE_API_URL, { cache: 'no-store' })
                 .then(res => {
                     if (res && res.ok) {
