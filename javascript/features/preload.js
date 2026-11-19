@@ -22,7 +22,6 @@ const FILES_TO_LOAD = [
     './javascript/features/preload-game.js',
     './javascript/features/svg-processor.js',
     './image/wood.webp',
-    './image/Upper_wood.webp',
     './javascript/groups-data.js',
     './javascript/core/svg-generator.js'
 ];
