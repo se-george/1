@@ -2,8 +2,8 @@
 // config.js - الثوابت والإعدادات العامة
 // ============================================
 
-export const REPO_NAME = "s4";
-export const GITHUB_USER = "MUE24Med";
+export const REPO_NAME = "1";
+export const GITHUB_USER = "se-george";
 
 // ✅ المصدر الوحيد لاسم الكاش — غيّره هنا فقط عند كل تحديث
 // (يُمرَّر للـ Service Worker كـ ?v= ويستخدمه preload.js أيضاً)
