@@ -2,6 +2,8 @@
 // preload.js - نظام التحميل المسبق فقط
 // ============================================
 
+import { SW_CACHE_NAME } from '../core/config.js';
+
 // قائمة الملفات المراد تحميلها مسبقاً
 const FILES_TO_LOAD = [
     './style.css',
@@ -62,7 +64,7 @@ export function initPreload(onComplete) {
 
     async function loadFile(url) {
         try {
-            const cache = await caches.open('semester-3-cache-v1');
+            const cache = await caches.open(SW_CACHE_NAME);
             const cachedResponse = await cache.match(url);
 
             if (cachedResponse) {
