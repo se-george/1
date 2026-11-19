@@ -295,17 +295,6 @@ export async function loadImages() {
                 updateLoadProgress();
                 resolve();
             };
-
-            // 🔥 في حال فشل تحميل صورة الخشب أو اللوجو، نخفيها بدل ما تظهر مكسورة
-            img.onerror = function () {
-                const allImages = [...mainSvg.querySelectorAll('image')];
-                allImages.forEach(si => {
-                    if (si.getAttribute('data-src') === url) {
-                        si.style.display = 'none';
-                        si.removeAttribute('data-src');
-                    }
-                });
-                console.warn(`⚠️ تم إخفاء صورة مفقودة: ${url}`);
                 
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
