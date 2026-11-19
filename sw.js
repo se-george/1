@@ -1,6 +1,5 @@
 const _params = new URL(self.location.href).searchParams;
 const CACHE_NAME = 'semester-1-cache-v74';
-// 🆕 رابط شجرة الملفات (يُستخدم للـ pre-cache ولمطابقة الـ cache)
 const TREE_API_URL = _params.get('tree') || '';
 
 const urlsToCache = [
