@@ -169,15 +169,11 @@ export async function loadGroupSVG(groupLetter) {
         console.log(`✅ توليد ${groupLetter}: ${groupContainer.children.length} عنصر`);
 
         const injectedImages = groupContainer.querySelectorAll('image[data-src]');
-        imageUrlsToLoad = ['image/wood.webp', 'image/Upper_wood.webp'];
+        imageUrlsToLoad = ['image/wood.webp'
+        ];
         injectedImages.forEach(img => {
             const src = img.getAttribute('data-src');
-            if (src && !imageUrlsToLoad.includes(src)) {
-                const isGroupImage = src.includes(`image/${groupLetter}/`) || src.includes(`logo-${groupLetter}`) || src.includes(`logo-wood-${groupLetter}`);
-                if (isGroupImage) imageUrlsToLoad.push(src);
-            }
-        });
-
+            },)
         loadingProgress.totalSteps = 1 + imageUrlsToLoad.length;
         loadingProgress.completedSteps = 1;
         updateLoadProgress();
@@ -299,8 +295,6 @@ export async function loadImages() {
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
                 resolve();
-            };
-
             img.src = url;
         });
     }
