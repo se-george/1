@@ -3,7 +3,6 @@ import { getDisplayName, debounce, resetBrowserZoom } from './utils.js';
 import { pushNavigationState, goToWood } from './navigation.js';
 import { setCurrentGroup, setCurrentFolder, setGlobalFileTree, globalFileTree, currentGroup, currentFolder } from './state.js';
 
-// ✅ توليد SVG من البيانات (بدلاً من fetch لملف SVG)
 import { generateGroupSVG } from './svg-generator.js';
 import { GROUP_DATA } from '../groups-data.js';
 
@@ -19,7 +18,6 @@ let loadingProgress = {
 export async function fetchGlobalTree() {
     if (globalFileTree.length > 0) return;
 
-    // 1) محاولة الجلب (SW هيتدخل بـ Cache First)
     try {
         const response = await fetch(TREE_API_URL);
         if (!response.ok) throw new Error(`API status ${response.status}`);
@@ -30,15 +28,11 @@ export async function fetchGlobalTree() {
             setGlobalFileTree(data.tree);
             console.log("✅ تم تحميل شجرة الملفات:", globalFileTree.length);
 
-            // 🆕 حفظ نسخة احتياطية دائمة في localStorage
             try {
                 const treeStr = JSON.stringify(data.tree);
-                // تجنّب تجاوز حدود localStorage (~5MB)
                 if (treeStr.length < 4 * 1024 * 1024) {
                     localStorage.setItem('cached_file_tree', treeStr);
                     localStorage.setItem('cached_file_tree_time', Date.now().toString());
-                } else {
-                    console.warn('⚠️ الشجرة أكبر من 4MB — تخطي حفظها محلياً');
                 }
             } catch (e) {
                 console.warn('⚠️ فشل حفظ الشجرة في localStorage:', e);
@@ -49,7 +43,6 @@ export async function fetchGlobalTree() {
         console.warn("⚠️ فشل جلب الشجرة - محاولة الـ fallback:", err);
     }
 
-    // 2) 🆕 Fallback من localStorage (وضع أوفلاين)
     try {
         const cached = localStorage.getItem('cached_file_tree');
         if (cached) {
@@ -64,7 +57,6 @@ export async function fetchGlobalTree() {
         console.error('❌ فشل قراءة الكاش المحلي:', e);
     }
 
-    // 3) لا شيء متاح
     console.warn("⚠️ لا توجد شجرة ملفات متاحة (أول زيارة أوفلاين؟)");
 }
 
@@ -98,10 +90,7 @@ export function showLoadingScreen(groupLetter) {
                 font-size: 120px;
                 font-weight: bold;
                 color: #ffca28;
-                text-shadow: 
-                    0 0 30px rgba(255,202,40,0.8),
-                    0 0 60px rgba(255,202,40,0.5),
-                    0 0 90px rgba(255,202,40,0.3);
+                text-shadow: 0 0 30px rgba(255,202,40,0.8), 0 0 60px rgba(255,202,40,0.5), 0 0 90px rgba(255,202,40,0.3);
                 font-family: 'Arial Black', sans-serif;
                 letter-spacing: 15px;
                 animation: pulse 2s ease-in-out infinite;
@@ -114,11 +103,7 @@ export function showLoadingScreen(groupLetter) {
         textElement.style.display = 'block';
     }
 
-    loadingProgress = {
-        totalSteps: 0,
-        completedSteps: 0,
-        currentPercentage: 0
-    };
+    loadingProgress = { totalSteps: 0, completedSteps: 0, currentPercentage: 0 };
 
     document.querySelectorAll('.light-bulb').forEach(bulb => bulb.classList.remove('on'));
     loadingOverlay.classList.add('active');
@@ -135,25 +120,20 @@ export function hideLoadingScreen() {
     loadingOverlay.classList.remove('active');
 
     const splashImage = document.getElementById('splash-image');
-    if (splashImage) {
-        splashImage.style.display = '';
-    }
+    if (splashImage) splashImage.style.display = '';
+    
     const textElement = document.getElementById('group-text-display');
-    if (textElement) {
-        textElement.style.display = 'none';
-    }
+    if (textElement) textElement.style.display = 'none';
+    
     console.log('✅ تم إخفاء شاشة التحميل');
 }
 
 export function updateLoadProgress() {
-    if (loadingProgress.totalSteps === 0) {
-        console.warn('⚠️ totalSteps = 0');
-        return;
-    }
+    if (loadingProgress.totalSteps === 0) return;
+    
     const progress = (loadingProgress.completedSteps / loadingProgress.totalSteps) * 100;
     loadingProgress.currentPercentage = Math.min(100, Math.round(progress));
-    console.log(`📊 التقدم: ${loadingProgress.currentPercentage}% (${loadingProgress.completedSteps}/${loadingProgress.totalSteps})`);
-
+    
     const percentage = loadingProgress.currentPercentage;
     if (percentage >= 20) document.getElementById('bulb-4')?.classList.add('on');
     if (percentage >= 40) document.getElementById('bulb-3')?.classList.add('on');
@@ -161,7 +141,7 @@ export function updateLoadProgress() {
     if (percentage >= 80) document.getElementById('bulb-1')?.classList.add('on');
 }
 
-// ---------- تحميل SVG الخاص بالمجموعة (مولَّد من البيانات) ----------
+// ---------- تحميل SVG الخاص بالمجموعة ----------
 export async function loadGroupSVG(groupLetter) {
     const groupContainer = document.getElementById('group-specific-content');
     if (!groupContainer) return;
@@ -169,24 +149,13 @@ export async function loadGroupSVG(groupLetter) {
 
     const group = GROUP_DATA[groupLetter];
 
-    // ✅ لو المجموعة مش جاهزة → رسالة واضحة
     if (!group || !group.template) {
         console.warn(`⚠️ المجموعة ${groupLetter} مش جاهزة بعد`);
         groupContainer.innerHTML = `
             <g transform="translate(0,0)">
                 <rect x="0" y="0" width="1024" height="2454" fill="#111"/>
-                <text x="512" y="800" text-anchor="middle" fill="#ffcc00"
-                      font-size="80" font-weight="bold" font-family="Arial">
-                    Group ${groupLetter}
-                </text>
-                <text x="512" y="950" text-anchor="middle" fill="#888"
-                      font-size="50" font-family="Arial">
-                    قريباً...
-                </text>
-                <text x="512" y="1050" text-anchor="middle" fill="#555"
-                      font-size="35" font-family="Arial">
-                    Coming Soon
-                </text>
+                <text x="512" y="800" text-anchor="middle" fill="#ffcc00" font-size="80" font-weight="bold" font-family="Arial">Group ${groupLetter}</text>
+                <text x="512" y="950" text-anchor="middle" fill="#888" font-size="50" font-family="Arial">قريباً...</text>
             </g>
         `;
         loadingProgress.totalSteps = 1;
@@ -204,9 +173,7 @@ export async function loadGroupSVG(groupLetter) {
         injectedImages.forEach(img => {
             const src = img.getAttribute('data-src');
             if (src && !imageUrlsToLoad.includes(src)) {
-                const isGroupImage = src.includes(`image/${groupLetter}/`) ||
-                    src.includes(`logo-${groupLetter}`) ||
-                    src.includes(`logo-wood-${groupLetter}`);
+                const isGroupImage = src.includes(`image/${groupLetter}/`) || src.includes(`logo-${groupLetter}`) || src.includes(`logo-wood-${groupLetter}`);
                 if (isGroupImage) imageUrlsToLoad.push(src);
             }
         });
@@ -243,6 +210,11 @@ export function updateWoodLogo(groupLetter) {
     banner.style.opacity = "0.9";
     banner.style.pointerEvents = "auto";
 
+    // 🔥 إخفاء اللوجو في حال عدم وجود الملف بدلاً من إظهار Error 404
+    banner.onerror = () => {
+        banner.remove(); 
+    };
+
     banner.onclick = (e) => {
         e.stopPropagation();
         resetBrowserZoom();
@@ -261,13 +233,7 @@ export function updateWoodLogo(groupLetter) {
 // ---------- تهيئة المجموعة ----------
 export async function initializeGroup(groupLetter) {
     console.log(`🚀 تهيئة المجموعة: ${groupLetter}`);
-
-    const previousGroup = localStorage.getItem('selectedGroup');
-
-    if (previousGroup && previousGroup !== groupLetter) {
-        console.log(`🔄 تم تغيير الجروب من ${previousGroup} إلى ${groupLetter}`);
-    }
-
+    
     saveSelectedGroup(groupLetter);
 
     const toggleContainer = document.getElementById('js-toggle-container');
@@ -300,7 +266,6 @@ export async function loadImages() {
 
     console.log(`🖼️ بدء تحميل ${imageUrlsToLoad.length} صورة...`);
     if (imageUrlsToLoad.length === 0) {
-        console.warn('⚠️ لا توجد صور للتحميل!');
         finishLoading();
         return;
     }
@@ -315,8 +280,7 @@ export async function loadImages() {
             img.onload = function () {
                 const allImages = [
                     ...mainSvg.querySelectorAll('image'),
-                    ...(document.getElementById('files-list-container')
-                        ?.querySelectorAll('image') || [])
+                    ...(document.getElementById('files-list-container')?.querySelectorAll('image') || [])
                 ];
                 allImages.forEach(si => {
                     const dataSrc = si.getAttribute('data-src');
@@ -332,8 +296,17 @@ export async function loadImages() {
                 resolve();
             };
 
+            // 🔥 في حال فشل تحميل صورة الخشب أو اللوجو، نخفيها بدل ما تظهر مكسورة
             img.onerror = function () {
-                console.error(`❌ خطأ في تحميل ${url}`);
+                const allImages = [...mainSvg.querySelectorAll('image')];
+                allImages.forEach(si => {
+                    if (si.getAttribute('data-src') === url) {
+                        si.style.display = 'none';
+                        si.removeAttribute('data-src');
+                    }
+                });
+                console.warn(`⚠️ تم إخفاء صورة مفقودة: ${url}`);
+                
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
                 resolve();
