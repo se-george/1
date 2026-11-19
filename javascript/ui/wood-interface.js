@@ -33,7 +33,6 @@ const ALLOWED_EXTENSIONS = [
     'pptx', 'ppt'
 ];
 
-// امتدادات الصور التي تُعرض كـ thumbnail فعلي
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
 const isSupportedFile = (path) => {
@@ -135,7 +134,6 @@ export async function updateWoodInterface() {
 
     if (!dynamicGroup || !backBtnText) return;
 
-    // تنظيف العناصر السابقة
     dynamicGroup.querySelectorAll('.wood-folder-group, .wood-file-group, .scroll-container-group, .subject-separator-group, .scroll-bar-group, .window-frame')
         .forEach(el => el.remove());
 
@@ -143,7 +141,6 @@ export async function updateWoodInterface() {
 
     const query = normalizeArabic(searchInput ? searchInput.value : '');
 
-    // تحديث نص زر الرجوع
     if (currentFolder === "") {
         backBtnText.textContent = "➡️ إلى الخريطة ➡️";
         const currentState = getCurrentNavigationState();
@@ -174,7 +171,6 @@ export async function updateWoodInterface() {
             `🔙 ${breadcrumb} ${displayLabel}`;
     }
 
-    // تحديث نص زر تغيير الجروب
     if (groupBtnText && currentGroup) {
         groupBtnText.textContent = `Change Group 🔄 ${currentGroup}`;
     }
@@ -229,7 +225,6 @@ export async function updateWoodInterface() {
 
     let filteredData = Array.from(itemsMap.values());
 
-    // ترتيب العناصر
     filteredData.sort((a, b) => {
         if (a.isSubject && !b.isSubject) return -1;
         if (!a.isSubject && b.isSubject) return 1;
@@ -249,11 +244,9 @@ export async function updateWoodInterface() {
         return a.name.localeCompare(b.name);
     });
 
-    // إنشاء مجموعة التمرير
     const scrollContainerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     scrollContainerGroup.setAttribute("class", "scroll-container-group");
 
-    // إعداد الـ ClipPath
     const oldClips = mainSvg.querySelectorAll('clipPath[id^="window-clip"]');
     oldClips.forEach(clip => clip.remove());
 
@@ -261,11 +254,12 @@ export async function updateWoodInterface() {
     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
     clipPath.setAttribute("id", clipPathId);
 
+    // 🔥 تعديل مساحة الرؤية لتصل إلى آخر الشاشة (2454 - 250 = 2204)
     const clipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     clipRect.setAttribute("x", "120");
     clipRect.setAttribute("y", "250");
     clipRect.setAttribute("width", "780");
-    clipRect.setAttribute("height", "1700");
+    clipRect.setAttribute("height", "2204"); 
     clipRect.setAttribute("rx", "15");
 
     clipPath.appendChild(clipRect);
@@ -285,7 +279,6 @@ export async function updateWoodInterface() {
     let fileRowCounter = 0;
     let itemsAdded = 0;
 
-    // تجميع العناصر حسب المادة
     const itemsBySubject = {};
     filteredData.forEach(item => {
         const subjectKey = item.isSubject ? item.subject : 'other';
@@ -325,7 +318,6 @@ export async function updateWoodInterface() {
             const isImage = item.type === 'file' && isImageFile(item.path);
             const isFullWidth = item.type === 'dir' || isImage;
 
-            // لو العنصر الحالي full-width ونحن في منتصف صف، نكمل الصف أولاً
             if (isFullWidth && fileRowCounter > 0) {
                 if (fileRowCounter % 2 === 1) {
                     yPosition += 90;
@@ -333,7 +325,6 @@ export async function updateWoodInterface() {
                 fileRowCounter = 0;
             }
 
-            // تحديد الأبعاد
             let x, width, height;
             if (item.type === 'dir') {
                 x = 120;
@@ -342,7 +333,7 @@ export async function updateWoodInterface() {
             } else if (isImage) {
                 x = 120;
                 width = 780;
-                height = 200;  // صور أكبر عشان تبان كاملة
+                height = 200; 
             } else {
                 const isLeftColumn = fileRowCounter % 2 === 0;
                 x = isLeftColumn ? 120 : 550;
@@ -359,7 +350,6 @@ export async function updateWoodInterface() {
             const cleanName = item.name.replace(/\.[^/.]+$/, "");
             let shouldDisplay = true;
 
-            // ========== التحقق من البحث ==========
             if (item.type === 'dir') {
                 const filteredCount = globalFileTree.filter(f => {
                     const isInsideFolder = f.path.startsWith(item.path + '/');
@@ -387,17 +377,14 @@ export async function updateWoodInterface() {
                 }
             }
 
-            // ========== رسم العنصر ==========
             if (shouldDisplay) {
-
                 if (isImage) {
-                    // ================== عرض الصورة كصورة فعلية ==================
-                    const imageUrl = `${RAW_CONTENT_BASE}/${item.path}`;
-                    const displayName = cleanName.length > 40
-                        ? cleanName.substring(0, 37) + "..."
-                        : cleanName;
+                    // 🔥 تشفير المسار لمنع أخطاء 404 بسبب المسافات
+                    const encodedPath = item.path.split('/').map(encodeURIComponent).join('/');
+                    const imageUrl = `${RAW_CONTENT_BASE}/${encodedPath}`;
+                    
+                    const displayName = cleanName.length > 40 ? cleanName.substring(0, 37) + "..." : cleanName;
 
-                    // ClipPath لتدوير الحواف
                     const imgClipId = "imgclip-" + Date.now() + "-" + Math.floor(Math.random() * 99999);
                     const imgClipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
                     imgClipPath.setAttribute("id", imgClipId);
@@ -410,7 +397,6 @@ export async function updateWoodInterface() {
                     imgClipPath.appendChild(imgClipRect);
                     mainSvg.querySelector('defs').appendChild(imgClipPath);
 
-                    // خلفية داكنة (تظهر لو الصورة لم تُحمّل أو كانت شفافة)
                     const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     bgRect.setAttribute("x", x);
                     bgRect.setAttribute("y", y);
@@ -420,7 +406,16 @@ export async function updateWoodInterface() {
                     bgRect.setAttribute("clip-path", `url(#${imgClipId})`);
                     bgRect.style.fill = "#1a1a1a";
 
-                    // الصورة الفعلية — meet = عرض كامل بدون قص
+                    // نص التحميل
+                    const loadingText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    loadingText.setAttribute("x", x + width / 2);
+                    loadingText.setAttribute("y", y + height / 2);
+                    loadingText.setAttribute("text-anchor", "middle");
+                    loadingText.setAttribute("fill", "#888");
+                    loadingText.style.fontSize = "18px";
+                    loadingText.style.pointerEvents = "none";
+                    loadingText.textContent = "⏳ جاري التحميل...";
+
                     const imgElement = document.createElementNS("http://www.w3.org/2000/svg", "image");
                     imgElement.setAttribute("x", x);
                     imgElement.setAttribute("y", y);
@@ -431,7 +426,14 @@ export async function updateWoodInterface() {
                     imgElement.setAttribute("clip-path", `url(#${imgClipId})`);
                     imgElement.style.pointerEvents = "none";
 
-                    // إطار ذهبي
+                    // التعامل مع حالة نجاح أو فشل التحميل
+                    imgElement.addEventListener('load', () => loadingText.remove());
+                    imgElement.addEventListener('error', () => {
+                        loadingText.textContent = "⚠️ الصورة غير متاحة";
+                        loadingText.setAttribute("fill", "#ff4444");
+                        imgElement.remove();
+                    });
+
                     const frameRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     frameRect.setAttribute("x", x);
                     frameRect.setAttribute("y", y);
@@ -444,7 +446,6 @@ export async function updateWoodInterface() {
                     frameRect.style.strokeWidth = "3";
                     frameRect.style.pointerEvents = "none";
 
-                    // شريط اسم الصورة أسفل الصورة
                     const nameBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     nameBg.setAttribute("x", x);
                     nameBg.setAttribute("y", y + height - 32);
@@ -466,12 +467,12 @@ export async function updateWoodInterface() {
                     nameLabel.textContent = "🖼️ " + displayName;
 
                     g.appendChild(bgRect);
+                    g.appendChild(loadingText);
                     g.appendChild(imgElement);
                     g.appendChild(nameBg);
                     g.appendChild(nameLabel);
                     g.appendChild(frameRect);
 
-                    // أحداث الصورة
                     let lpTimer = null;
                     let lpTriggered = false;
                     let tStart = 0;
@@ -494,7 +495,7 @@ export async function updateWoodInterface() {
                         clearTimeout(lpTimer);
                         if (!lpTriggered && Date.now() - tStart < 500) {
                             e.stopPropagation();
-                            e.preventDefault();
+                            if (e.cancelable) e.preventDefault(); // إصلاح تحذير المتصفح
                             resetBrowserZoom();
                             openImageLightbox(imageUrl, cleanName);
                         }
@@ -507,7 +508,6 @@ export async function updateWoodInterface() {
                     });
 
                 } else {
-                    // ================== زر عادي (PDF / صوت / فيديو / مجلد) ==================
                     const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     r.setAttribute("x", x);
                     r.setAttribute("y", y);
@@ -590,7 +590,7 @@ export async function updateWoodInterface() {
                         const touchDuration = Date.now() - touchStartTime;
                         if (!longPressTriggered && touchDuration < 500) {
                             e.stopPropagation();
-                            e.preventDefault();
+                            if (e.cancelable) e.preventDefault();
                             resetBrowserZoom();
                             if (item.type === 'dir') {
                                 setCurrentFolder(item.path);
@@ -619,7 +619,6 @@ export async function updateWoodInterface() {
                 itemsAdded++;
             }
 
-            // ========== تحديث موضع Y ==========
             if (isFullWidth) {
                 yPosition += height + 20;
                 fileRowCounter = 0;
@@ -640,7 +639,9 @@ export async function updateWoodInterface() {
 
     yPosition += BOTTOM_PADDING;
     const totalContentHeight = yPosition - 250;
-    const needsScroll = totalContentHeight > 1700;
+    
+    // تحديث شرط التمرير بناء على الارتفاع الجديد 2204
+    const needsScroll = totalContentHeight > 2204; 
 
     if (needsScroll) {
         const woodBanner = dynamicGroup.querySelector('.wood-banner-animation');
@@ -657,7 +658,7 @@ export async function updateWoodInterface() {
     scrollContainerGroup.appendChild(separatorGroup);
     scrollContainerGroup.appendChild(scrollContent);
 
-    const maxScroll = Math.max(0, totalContentHeight - 1700);
+    const maxScroll = Math.max(0, totalContentHeight - 2204); 
     addScrollSystem(scrollContainerGroup, scrollContent, separatorGroup, maxScroll, totalContentHeight);
 
     dynamicGroup.appendChild(scrollContainerGroup);
@@ -677,7 +678,7 @@ export function renderNameInput() {
     const containerWidth = 1024;
     const inputWidth = 780;
     const centerX = (containerWidth - inputWidth) / 2;
-    const inputY = 0;
+    const inputY = 1980;
 
     const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     bg.setAttribute("x", centerX);
@@ -744,7 +745,7 @@ export function preventInteractionWhenHidden() {
 
     if (!toggleContainer || !searchContainer) {
         console.warn('⚠️ لم يتم العثور على الحاويات، إعادة المحاولة...');
-        setTimeout(preventInteractionWhenHidden, 50);
+        setTimeout(preventInteractionWhenHidden, 500);
         return;
     }
 
