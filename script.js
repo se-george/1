@@ -11,6 +11,7 @@ import { scan } from './javascript/features/svg-processor.js';
 import { resetBrowserZoom } from './javascript/core/utils.js';
 import { checkForUpdates } from './javascript/core/update-checker.js';
 import { smartOpen } from './javascript/ui/pdf-viewer.js';
+import { GITHUB_USER, REPO_NAME, SW_CACHE_NAME, TREE_API_URL } from './javascript/core/config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // الاستماع للضغط على مستطيلات الـ SVG
@@ -34,6 +35,66 @@ if (updateBtn) {
         checkForUpdates();
     });
 }
+
+// ---------- تسجيل Service Worker (الاسم من config.js) ----------
+function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+
+    // لو مفيش controller حالياً فده أول تثبيت → لا نعيد التحميل
+    const hadController = !!navigator.serviceWorker.controller;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController || refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+
+    const swUrl = `./sw.js?v=${encodeURIComponent(SW_CACHE_NAME)}&tree=${encodeURIComponent(TREE_API_URL)}`;
+    navigator.serviceWorker.register(swUrl)
+        .then(() => console.log('✅ Service Worker مسجل:', SW_CACHE_NAME))
+        .catch(err => console.error('❌ فشل تسجيل SW:', err));
+}
+
+if (document.readyState === 'complete') registerServiceWorker();
+else window.addEventListener('load', registerServiceWorker);
+
+// ---------- فحص تحديثات المستودع (commit) ----------
+async function checkForCommitUpdates() {
+    try {
+        const lastCheck = localStorage.getItem('last_update_check');
+        const now = Date.now();
+        if (lastCheck && (now - parseInt(lastCheck)) < 300000) return;
+
+        const response = await fetch(
+            `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/commits/main`,
+            { cache: 'no-store', headers: { 'Accept': 'application/vnd.github.v3+json' } }
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        const latestSha = data.sha.substring(0, 7);
+        const lastSha = localStorage.getItem('last_commit_sha');
+
+        localStorage.setItem('last_update_check', now.toString());
+        if (!lastSha) {
+            localStorage.setItem('last_commit_sha', latestSha);
+            return;
+        }
+        if (lastSha !== latestSha) {
+            console.log('🆕 تحديث جديد متاح:', latestSha);
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map(name => caches.delete(name)));
+            localStorage.setItem('last_commit_sha', latestSha);
+            localStorage.removeItem('preload_done');
+            window.location.reload();
+        }
+    } catch (error) {
+        console.warn('⚠️ خطأ في فحص التحديثات:', error);
+    }
+}
+window.addEventListener('load', checkForCommitUpdates);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkForCommitUpdates();
+});
 
 // ---------- تحميل آخر جروب تلقائياً ----------
 function autoLoadLastGroup() {
