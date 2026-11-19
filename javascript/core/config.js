@@ -7,7 +7,7 @@ export const GITHUB_USER = "se-george";
 
 // ✅ المصدر الوحيد لاسم الكاش — غيّره هنا فقط عند كل تحديث
 // (يُمرَّر للـ Service Worker كـ ?v= ويستخدمه preload.js أيضاً)
-export const SW_CACHE_NAME = "semester-4-cache-2026-11-19-01";
+export const SW_CACHE_NAME = "semester-4-cache-2026-11-19-02";
 
 export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
 export const TREE_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/git/trees/main?recursive=1`;
