@@ -24,7 +24,7 @@ import { setupSearchInput, setupEyeToggleSystem } from './search-and-eye.js';
 // ---------- متغير التفاعل ----------
 export let interactionEnabled = true;
 
-// ---------- الامتدادات المسموح بعرضها (تشمل كافة صيغ الصور، الفيديوهات، الملفات الصوتية، وpptx) ----------
+// ---------- الامتدادات المسموح بعرضها ----------
 const ALLOWED_EXTENSIONS = [
     'pdf', 
     'png', 'jpg', 'jpeg', 'webp', 'gif', 'heic',
@@ -33,10 +33,97 @@ const ALLOWED_EXTENSIONS = [
     'pptx', 'ppt'
 ];
 
+// امتدادات الصور التي تُعرض كـ thumbnail فعلي
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
+
 const isSupportedFile = (path) => {
     const ext = path.split('.').pop().toLowerCase();
     return ALLOWED_EXTENSIONS.includes(ext);
 };
+
+const isImageFile = (path) => {
+    const ext = path.split('.').pop().toLowerCase();
+    return IMAGE_EXTENSIONS.includes(ext);
+};
+
+// ---------- معرض الصور (Lightbox) ----------
+let currentImageLightbox = null;
+
+function openImageLightbox(imageSrc, fileName) {
+    if (currentImageLightbox) {
+        currentImageLightbox.remove();
+        currentImageLightbox = null;
+    }
+
+    if (!document.getElementById('wood-lightbox-style')) {
+        const style = document.createElement('style');
+        style.id = 'wood-lightbox-style';
+        style.textContent = `@keyframes woodFadeIn { from { opacity:0 } to { opacity:1 } }`;
+        document.head.appendChild(style);
+    }
+
+    const lightbox = document.createElement('div');
+    lightbox.style.cssText = `
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.96);
+        z-index: 999999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        padding: 20px; box-sizing: border-box;
+        animation: woodFadeIn 0.25s ease;
+    `;
+
+    const closeBtn = document.createElement('div');
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute; top: 20px; right: 20px;
+        width: 50px; height: 50px; display: flex;
+        align-items: center; justify-content: center;
+        background: rgba(255,255,255,0.15); color: #fff;
+        border: 2px solid rgba(255,255,255,0.4);
+        border-radius: 50%; font-size: 24px; font-weight: bold;
+        cursor: pointer; user-select: none;
+        transition: background 0.2s, transform 0.2s;
+    `;
+    closeBtn.onmouseenter = () => { closeBtn.style.background = 'rgba(255,255,255,0.3)'; closeBtn.style.transform = 'scale(1.1)'; };
+    closeBtn.onmouseleave = () => { closeBtn.style.background = 'rgba(255,255,255,0.15)'; closeBtn.style.transform = 'scale(1)'; };
+
+    const img = document.createElement('img');
+    img.src = imageSrc;
+    img.alt = fileName;
+    img.style.cssText = `
+        max-width: 95vw; max-height: 82vh;
+        object-fit: contain; border-radius: 12px;
+        box-shadow: 0 10px 60px rgba(0,0,0,0.9);
+        background: #111;
+    `;
+
+    const title = document.createElement('div');
+    title.textContent = '🖼️ ' + fileName;
+    title.style.cssText = `
+        color: #fff; margin-top: 20px; font-size: 18px;
+        font-weight: bold; font-family: Arial, sans-serif;
+        text-align: center; padding: 8px 22px;
+        background: rgba(255,202,40,0.15);
+        border: 1px solid rgba(255,202,40,0.4);
+        border-radius: 22px; max-width: 90vw;
+        word-break: break-word;
+    `;
+
+    const close = () => {
+        lightbox.remove();
+        currentImageLightbox = null;
+    };
+
+    closeBtn.onclick = close;
+    lightbox.onclick = (e) => { if (e.target === lightbox) close(); };
+
+    lightbox.appendChild(closeBtn);
+    lightbox.appendChild(img);
+    lightbox.appendChild(title);
+    document.body.appendChild(lightbox);
+    currentImageLightbox = lightbox;
+}
 
 // ---------- تحديث واجهة الخشب ----------
 export async function updateWoodInterface() {
@@ -235,21 +322,32 @@ export async function updateWoodInterface() {
         for (let i = 0; i < subjectItems.length; i++) {
             const item = subjectItems[i];
 
-            if (item.type === 'dir' && fileRowCounter > 0) {
+            const isImage = item.type === 'file' && isImageFile(item.path);
+            const isFullWidth = item.type === 'dir' || isImage;
+
+            // لو العنصر الحالي full-width ونحن في منتصف صف، نكمل الصف أولاً
+            if (isFullWidth && fileRowCounter > 0) {
                 if (fileRowCounter % 2 === 1) {
                     yPosition += 90;
                 }
                 fileRowCounter = 0;
             }
 
-            let x, width;
+            // تحديد الأبعاد
+            let x, width, height;
             if (item.type === 'dir') {
                 x = 120;
                 width = 780;
+                height = 70;
+            } else if (isImage) {
+                x = 120;
+                width = 780;
+                height = 200;  // صور أكبر عشان تبان كاملة
             } else {
                 const isLeftColumn = fileRowCounter % 2 === 0;
                 x = isLeftColumn ? 120 : 550;
                 width = 350;
+                height = 70;
             }
 
             const y = yPosition;
@@ -258,38 +356,10 @@ export async function updateWoodInterface() {
             g.setAttribute("class", item.type === 'dir' ? "wood-folder-group" : "wood-file-group");
             g.style.cursor = "pointer";
 
-            const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            r.setAttribute("x", x);
-            r.setAttribute("y", y);
-            r.setAttribute("width", width);
-            r.setAttribute("height", "70");
-            r.setAttribute("rx", "12");
-            r.setAttribute("class", "list-item");
-
-            if (item.type === 'dir') {
-                r.style.fill = isSubjectSection ? "#8d6e63" : "#5d4037";
-                r.style.stroke = isSubjectSection ? "#ffcc00" : "#fff";
-                r.style.strokeWidth = isSubjectSection ? "3" : "2";
-            } else {
-                r.style.fill = "rgba(0,0,0,0.85)";
-                r.style.stroke = "#fff";
-                r.style.strokeWidth = "2";
-            }
-
             const cleanName = item.name.replace(/\.[^/.]+$/, "");
-
-            const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            t.setAttribute("x", x + (width / 2));
-            t.setAttribute("y", y + 42);
-            t.setAttribute("text-anchor", "middle");
-            t.setAttribute("fill", "white");
-            t.style.fontWeight = "bold";
-            t.style.fontSize = item.type === 'dir' ? "20px" : "18px";
-            t.style.fontFamily = "Arial, sans-serif";
-            t.style.pointerEvents = "none";
-
             let shouldDisplay = true;
 
+            // ========== التحقق من البحث ==========
             if (item.type === 'dir') {
                 const filteredCount = globalFileTree.filter(f => {
                     const isInsideFolder = f.path.startsWith(item.path + '/');
@@ -305,26 +375,10 @@ export async function updateWoodInterface() {
                     );
                 }).length;
 
-                const maxLength = width === 780 ? 45 : 25;
-                const displayName = cleanName.length > maxLength ?
-                    cleanName.substring(0, maxLength - 3) + "..." : cleanName;
-                t.textContent = `📁 (${filteredCount}) ${displayName}`;
-
                 if (query !== "" && filteredCount === 0) {
                     shouldDisplay = false;
                 }
             } else {
-                // تحديد أيقونة التمييز حسب الامتداد
-                let icon = "📄 ";
-                const ext = item.path.split('.').pop().toLowerCase();
-                if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) icon = "🖼️ ";
-                else if (['mp4', 'webm'].includes(ext)) icon = "🎬 ";
-                else if (['mp3', 'wav', 'm4a', 'aac', 'ogg'].includes(ext)) icon = "🎧 ";
-                else if (['pptx', 'ppt'].includes(ext)) icon = "📊 ";
-
-                const displayName = cleanName.length > 25 ? cleanName.substring(0, 22) + "..." : cleanName;
-                t.textContent = icon + displayName;
-
                 const arabicName = autoTranslate(cleanName);
                 if (query !== "" &&
                     !normalizeArabic(cleanName).includes(query) &&
@@ -333,35 +387,224 @@ export async function updateWoodInterface() {
                 }
             }
 
+            // ========== رسم العنصر ==========
             if (shouldDisplay) {
-                g.appendChild(r);
-                g.appendChild(t);
 
-                // نظام الضغط المطول للمعاينة
-                let longPressTimer = null;
-                let longPressTriggered = false;
-                let touchStartTime = 0;
+                if (isImage) {
+                    // ================== عرض الصورة كصورة فعلية ==================
+                    const imageUrl = `${RAW_CONTENT_BASE}/${item.path}`;
+                    const displayName = cleanName.length > 40
+                        ? cleanName.substring(0, 37) + "..."
+                        : cleanName;
 
-                g.addEventListener('touchstart', (e) => {
-                    touchStartTime = Date.now();
-                    longPressTriggered = false;
-                    longPressTimer = setTimeout(() => {
-                        longPressTriggered = true;
-                        if (item.type === 'file') {
+                    // ClipPath لتدوير الحواف
+                    const imgClipId = "imgclip-" + Date.now() + "-" + Math.floor(Math.random() * 99999);
+                    const imgClipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+                    imgClipPath.setAttribute("id", imgClipId);
+                    const imgClipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    imgClipRect.setAttribute("x", x);
+                    imgClipRect.setAttribute("y", y);
+                    imgClipRect.setAttribute("width", width);
+                    imgClipRect.setAttribute("height", height);
+                    imgClipRect.setAttribute("rx", "12");
+                    imgClipPath.appendChild(imgClipRect);
+                    mainSvg.querySelector('defs').appendChild(imgClipPath);
+
+                    // خلفية داكنة (تظهر لو الصورة لم تُحمّل أو كانت شفافة)
+                    const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    bgRect.setAttribute("x", x);
+                    bgRect.setAttribute("y", y);
+                    bgRect.setAttribute("width", width);
+                    bgRect.setAttribute("height", height);
+                    bgRect.setAttribute("rx", "12");
+                    bgRect.setAttribute("clip-path", `url(#${imgClipId})`);
+                    bgRect.style.fill = "#1a1a1a";
+
+                    // الصورة الفعلية — meet = عرض كامل بدون قص
+                    const imgElement = document.createElementNS("http://www.w3.org/2000/svg", "image");
+                    imgElement.setAttribute("x", x);
+                    imgElement.setAttribute("y", y);
+                    imgElement.setAttribute("width", width);
+                    imgElement.setAttribute("height", height);
+                    imgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
+                    imgElement.setAttribute("href", imageUrl);
+                    imgElement.setAttribute("clip-path", `url(#${imgClipId})`);
+                    imgElement.style.pointerEvents = "none";
+
+                    // إطار ذهبي
+                    const frameRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    frameRect.setAttribute("x", x);
+                    frameRect.setAttribute("y", y);
+                    frameRect.setAttribute("width", width);
+                    frameRect.setAttribute("height", height);
+                    frameRect.setAttribute("rx", "12");
+                    frameRect.setAttribute("clip-path", `url(#${imgClipId})`);
+                    frameRect.style.fill = "none";
+                    frameRect.style.stroke = "#ffca28";
+                    frameRect.style.strokeWidth = "3";
+                    frameRect.style.pointerEvents = "none";
+
+                    // شريط اسم الصورة أسفل الصورة
+                    const nameBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    nameBg.setAttribute("x", x);
+                    nameBg.setAttribute("y", y + height - 32);
+                    nameBg.setAttribute("width", width);
+                    nameBg.setAttribute("height", "32");
+                    nameBg.setAttribute("clip-path", `url(#${imgClipId})`);
+                    nameBg.style.fill = "rgba(0,0,0,0.78)";
+                    nameBg.style.pointerEvents = "none";
+
+                    const nameLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    nameLabel.setAttribute("x", x + width / 2);
+                    nameLabel.setAttribute("y", y + height - 10);
+                    nameLabel.setAttribute("text-anchor", "middle");
+                    nameLabel.setAttribute("fill", "#fff");
+                    nameLabel.style.fontSize = "16px";
+                    nameLabel.style.fontWeight = "bold";
+                    nameLabel.style.fontFamily = "Arial, sans-serif";
+                    nameLabel.style.pointerEvents = "none";
+                    nameLabel.textContent = "🖼️ " + displayName;
+
+                    g.appendChild(bgRect);
+                    g.appendChild(imgElement);
+                    g.appendChild(nameBg);
+                    g.appendChild(nameLabel);
+                    g.appendChild(frameRect);
+
+                    // أحداث الصورة
+                    let lpTimer = null;
+                    let lpTriggered = false;
+                    let tStart = 0;
+
+                    g.addEventListener('touchstart', (e) => {
+                        tStart = Date.now();
+                        lpTriggered = false;
+                        lpTimer = setTimeout(() => {
+                            lpTriggered = true;
                             if (navigator.vibrate) navigator.vibrate(50);
                             import('./pdf-viewer.js').then(({ showPDFPreview }) => {
                                 showPDFPreview(item);
-                            });
-                        }
-                    }, 500);
-                }, { passive: true });
+                            }).catch(() => {});
+                        }, 500);
+                    }, { passive: true });
 
-                g.addEventListener('touchend', (e) => {
-                    clearTimeout(longPressTimer);
-                    const touchDuration = Date.now() - touchStartTime;
-                    if (!longPressTriggered && touchDuration < 500) {
+                    g.addEventListener('touchmove', () => { clearTimeout(lpTimer); }, { passive: true });
+
+                    g.addEventListener('touchend', (e) => {
+                        clearTimeout(lpTimer);
+                        if (!lpTriggered && Date.now() - tStart < 500) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            resetBrowserZoom();
+                            openImageLightbox(imageUrl, cleanName);
+                        }
+                    });
+
+                    g.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        e.preventDefault();
+                        resetBrowserZoom();
+                        openImageLightbox(imageUrl, cleanName);
+                    });
+
+                } else {
+                    // ================== زر عادي (PDF / صوت / فيديو / مجلد) ==================
+                    const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    r.setAttribute("x", x);
+                    r.setAttribute("y", y);
+                    r.setAttribute("width", width);
+                    r.setAttribute("height", height);
+                    r.setAttribute("rx", "12");
+                    r.setAttribute("class", "list-item");
+
+                    if (item.type === 'dir') {
+                        r.style.fill = isSubjectSection ? "#8d6e63" : "#5d4037";
+                        r.style.stroke = isSubjectSection ? "#ffcc00" : "#fff";
+                        r.style.strokeWidth = isSubjectSection ? "3" : "2";
+                    } else {
+                        r.style.fill = "rgba(0,0,0,0.85)";
+                        r.style.stroke = "#fff";
+                        r.style.strokeWidth = "2";
+                    }
+
+                    const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    t.setAttribute("x", x + (width / 2));
+                    t.setAttribute("y", y + 42);
+                    t.setAttribute("text-anchor", "middle");
+                    t.setAttribute("fill", "white");
+                    t.style.fontWeight = "bold";
+                    t.style.fontSize = item.type === 'dir' ? "20px" : "18px";
+                    t.style.fontFamily = "Arial, sans-serif";
+                    t.style.pointerEvents = "none";
+
+                    if (item.type === 'dir') {
+                        const filteredCount = globalFileTree.filter(f => {
+                            const isInsideFolder = f.path.startsWith(item.path + '/');
+                            const isValidFile = isSupportedFile(f.path);
+                            if (query === "") return isInsideFolder && isValidFile;
+                            const fileName = f.path.split('/').pop().toLowerCase();
+                            const fileArabic = autoTranslate(fileName);
+                            return isInsideFolder && isValidFile && (
+                                normalizeArabic(fileName).includes(query) ||
+                                normalizeArabic(fileArabic).includes(query)
+                            );
+                        }).length;
+
+                        const maxLength = 45;
+                        const displayName = cleanName.length > maxLength ?
+                            cleanName.substring(0, maxLength - 3) + "..." : cleanName;
+                        t.textContent = `📁 (${filteredCount}) ${displayName}`;
+                    } else {
+                        let icon = "📄 ";
+                        const ext = item.path.split('.').pop().toLowerCase();
+                        if (['mp4', 'webm'].includes(ext)) icon = "🎬 ";
+                        else if (['mp3', 'wav', 'm4a', 'aac', 'ogg'].includes(ext)) icon = "🎧 ";
+                        else if (['pptx', 'ppt'].includes(ext)) icon = "📊 ";
+
+                        const displayName = cleanName.length > 25 ? cleanName.substring(0, 22) + "..." : cleanName;
+                        t.textContent = icon + displayName;
+                    }
+
+                    g.appendChild(r);
+                    g.appendChild(t);
+
+                    let longPressTimer = null;
+                    let longPressTriggered = false;
+                    let touchStartTime = 0;
+
+                    g.addEventListener('touchstart', (e) => {
+                        touchStartTime = Date.now();
+                        longPressTriggered = false;
+                        longPressTimer = setTimeout(() => {
+                            longPressTriggered = true;
+                            if (item.type === 'file') {
+                                if (navigator.vibrate) navigator.vibrate(50);
+                                import('./pdf-viewer.js').then(({ showPDFPreview }) => {
+                                    showPDFPreview(item);
+                                });
+                            }
+                        }, 500);
+                    }, { passive: true });
+
+                    g.addEventListener('touchend', (e) => {
+                        clearTimeout(longPressTimer);
+                        const touchDuration = Date.now() - touchStartTime;
+                        if (!longPressTriggered && touchDuration < 500) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            resetBrowserZoom();
+                            if (item.type === 'dir') {
+                                setCurrentFolder(item.path);
+                                updateWoodInterface();
+                            } else {
+                                smartOpen(item);
+                            }
+                        }
+                    });
+
+                    g.addEventListener('touchmove', () => { clearTimeout(longPressTimer); }, { passive: true });
+
+                    g.addEventListener('click', (e) => {
+                        e.stopPropagation();
                         resetBrowserZoom();
                         if (item.type === 'dir') {
                             setCurrentFolder(item.path);
@@ -369,30 +612,16 @@ export async function updateWoodInterface() {
                         } else {
                             smartOpen(item);
                         }
-                    }
-                });
-
-                g.addEventListener('touchmove', (e) => {
-                    clearTimeout(longPressTimer);
-                }, { passive: true });
-
-                g.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    resetBrowserZoom();
-                    if (item.type === 'dir') {
-                        setCurrentFolder(item.path);
-                        updateWoodInterface();
-                    } else {
-                        smartOpen(item);
-                    }
-                });
+                    });
+                }
 
                 scrollContent.appendChild(g);
                 itemsAdded++;
             }
 
-            if (item.type === 'dir') {
-                yPosition += 90;
+            // ========== تحديث موضع Y ==========
+            if (isFullWidth) {
+                yPosition += height + 20;
                 fileRowCounter = 0;
             } else {
                 fileRowCounter++;
@@ -448,7 +677,7 @@ export function renderNameInput() {
     const containerWidth = 1024;
     const inputWidth = 780;
     const centerX = (containerWidth - inputWidth) / 2;
-    const inputY = 1980;
+    const inputY = 0;
 
     const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     bg.setAttribute("x", centerX);
@@ -515,7 +744,7 @@ export function preventInteractionWhenHidden() {
 
     if (!toggleContainer || !searchContainer) {
         console.warn('⚠️ لم يتم العثور على الحاويات، إعادة المحاولة...');
-        setTimeout(preventInteractionWhenHidden, 500);
+        setTimeout(preventInteractionWhenHidden, 50);
         return;
     }
 
@@ -588,7 +817,6 @@ export function preventInteractionWhenHidden() {
         attributeFilter: ['class', 'style']
     });
 
-    // الحالة الابتدائية
     if (toggleContainer.classList.contains('hidden') ||
         toggleContainer.classList.contains('fully-hidden') ||
         toggleContainer.style.display === 'none') {
@@ -613,9 +841,9 @@ export function initWoodUI() {
     setupResetButton();
     setupMoveToggleButton();
     setupSearchIcon();
-    
+
     setupBackButtonInSVG(() => currentFolder, setCurrentFolder, updateWoodInterface);
-    
+
     setupInteractionToggle();
     setupSearchInput(updateWoodInterface);
     setupEyeToggleSystem();
