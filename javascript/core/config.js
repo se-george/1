@@ -5,22 +5,23 @@
 export const REPO_NAME = "1";
 export const GITHUB_USER = "se-george";
 
+// ملاحظة: اسم الكاش وإصداره معرّفين في sw.js فقط (const CACHE_NAME) — مفيش حاجة تخصه هنا.
+
 export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
 export const TREE_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/git/trees/main?recursive=1`;
 export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/main/`;
 
+// صورة خريطة الجروب (الخلفية اللي بتتركّب عليها المستطيلات): image/<الجروب>/<الاسم>
+// الكود بيجرّب الأسماء بالترتيب ويستخدم أول اسم موجود فعلاً (الأول = الأساسي).
+// لما تتأكد من الاسم الصح سيب اسم واحد بس.
+export const GROUP_IMAGE_NAMES = ['1.webp', '01.webp'];
+export const groupImagePaths = (groupLetter) =>
+    GROUP_IMAGE_NAMES.map(name => `image/${groupLetter}/${name}`);
+
 // الملفات المحمية (لا يتم تحديثها تلقائياً)
 export const PROTECTED_FILES = [
     'image/0.webp',
-    'image/wood.webp',
-    'image/Upper_wood.webp',
-    'image/logo-A.webp',
-    'image/logo-B.webp',
-    'image/logo-C.webp',
-    'image/logo-D.webp',
-    'image/logo-E.webp',
-    'image/logo-F.webp',
-    'image/black.webp'
+    'image/wood.webp'
 ];
 
 export function isProtectedFile(filename) {
