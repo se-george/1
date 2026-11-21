@@ -17,22 +17,36 @@ tue: { transform: 'translate(0,1353)', slots: [
 wed: { transform: 'translate(0,1828)', slots: [
 { x: 828.759, y: 0, w: 123.080, h: 417.683 },
 { x: 680.349, y: 0, w: 148.764, h: 416.255 }]},},
+10: {
+wed: ['o', 'o'],
+tue: ['o', 'o', 'o', 'o'],
+sun: ['o', 'o', 'o'],
+sat: ['o', 
+{cls: 'm l', href:
+'./Bio/???.pdf'},
+'o'],},
 9: {
- 
-      wed: ['o', 'o'],
-      tue: ['o', 'o', 'o', 'o'],
-     sun: [
-{cls: 'm s', href: './CCS/Section/???.pdf'},
-{cls: 'm l',href:'./Business/Lecture/Business Management.pdf'},
-{cls: 'm l', href: './IS/Lecture/E-commerce'},],
+wed: ['o', 'o'],
+tue: ['o', 'o', 'o', 'o'],
+sun: [
+{cls: 'm s', href:
+'./CCS/Section/???.pdf'},
+{cls: 'm l',href:
+'./Business/Lecture/Business Management.pdf'},
+{cls: 'm l', href:
+'./IS/Lecture/E-commerce'},],
       sat: [
-{ cls: 'm l', href: './Academic English/Lecture/???.pdf' },
-{ cls: 'm l', href: './Biochemistry/Lecture/c_overview-am.pdf' },
-{ cls: 'm s', href: './Biochemistry/Section/07 & 8.pdf'},],},
+{ cls: 'm l', href:
+'./Academic English/Lecture/???.pdf' },
+{ cls: 'm l', href:
+'./Bio/Lecture/c_overview-am.pdf' },
+{ cls: 'm s', href:
+'./Bio/Section/07 & 8.pdf'},],},
 
-    8: {
-    wed: [
-{ cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
+8: {
+wed: [
+{ cls: 'm l', href:
+'./Precalculus/Lecture/Matrix.pdf' },
 { cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],
       tue: ['o', 'o', 'o', 'x'],
       sun: ['o', 'o', 'o'],
