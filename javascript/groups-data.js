@@ -45,7 +45,7 @@ sun: [
 8: {
 wed: [
 { cls: 'm l', href:
-'./Precalculus/Lecture/Matrix.pdf' },
+'./Precalculus/Lecture/06_Matrix.pdf' },
 { cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],
       tue: ['o', 'o', 'o', 'x'],
       sun: ['o', 'o', 'o'],
@@ -67,7 +67,9 @@ wed: [
       sat: ['o', 'o', 'o'],
       sun: ['o', 'o', 'o'],
       tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+      wed: [
+  {cls: 'm l', href: './Precalculus/Lecture/05_A of Diversion'},
+  'o'],
     },
 
     5: {
