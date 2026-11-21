@@ -18,15 +18,17 @@ wed: { transform: 'translate(0,1828)', slots: [
 { x: 828.759, y: 0, w: 123.080, h: 417.683 },
 { x: 680.349, y: 0, w: 148.764, h: 416.255 }]},},
 10: {
-wed: ['o', 'o'],
-tue: ['o', 'o', 'o', 'o'],
-sun: ['o', 'o', 'o'],
-sat: ['o', 
+wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+sun: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+sat: [{cls: 'm l', href: './Unknown.pdf'}, 
 {cls: 'm l', href: './Bio/Lecture/???.pdf'},
 {cls: 'm s', href: './Bio/Section/???.pdf'}, ],},
 9: {
-wed: ['o', 'o'],
-tue: ['o', 'o', 'o', 'o'],
+wed: [
+{cls: 'm l', href: './Unknown.pdf'}
+  , {cls: 'm l', href: './Unknown.pdf'}],
+tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
 sun: [
 {cls: 'm s', href:
 './CCS/Section/???.pdf'},
@@ -47,14 +49,14 @@ wed: [
 { cls: 'm l', href:
 './Precalculus/Lecture/06_Matrix.pdf' },
 { cls: 'm l', href: './CCS/Lecture/c_overview-am.pdf ' },],
-      tue: ['o', 'o', 'o', 'x'],
-      sun: ['o', 'o', 'o'],
-      sat: ['o', 'o', 'o'],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, 'x'],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
   },
  
 
     7: {
-      sat: ['o', 'x', 'x'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, 'x', 'x'],
       sun: ['x', 'x', 'x'],
       tue: ['x', 'x', 'x', 'x'],
       wed: [
@@ -64,44 +66,44 @@ wed: [
     },
 
     6: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 'o', 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
       wed: [
   {cls: 'm l', href: './Precalculus/Lecture/05_A of Diversion'},
-  'o'],
+  {cls: 'm l', href: './Unknown.pdf'}],
     },
 
     5: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/04_Globl Context.pdf' }, 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, 
+{ cls: 'm l', href: './Business/Lecture/04_Globl Context.pdf' }, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
     },
 
     4: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/03_Ownership.pdf' }, 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, 
+{ cls: 'm l', href: './Business/Lecture/03_Ownership.pdf' }, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
     },
 
     3: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/02_Ethics.pdf' }, 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, 
+{ cls: 'm l', href: './Business/Lecture/02_Ethics.pdf' }, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
     },
 
     2: {
-      sat: ['o', 'o', 'o'],
-      sun: ['o', 
-{ cls: 'm l', href: './Business/Lecture/01_Fundamentals.pdf' }, 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+      sat: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, 
+{ cls: 'm l', href: './Business/Lecture/01_Fundamentals.pdf' }, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
     },
 
     1: {
@@ -109,10 +111,10 @@ wed: [
 [{ cls: 'm l', href: './Precalculus/Lecture/Matrix.pdf' },
 { cls: 'm q', href: './Precalculus/Lecture/Quiz1.pdf' },
 { cls:'m a',href:'./Precalculus/Lecture/Recap.pdf' },],
-'o', 'o',],
-      sun: ['o', 'o', 'o'],
-      tue: ['o', 'o', 'o', 'o', 'o'],
-      wed: ['o', 'o'],
+{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'},],
+      sun: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
+      wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
     },
   },
 A: {
@@ -120,34 +122,34 @@ A: {
     sat: { transform: 'translate(0,1024)', slots: [
       { x: 1023, y: 2453, w: 1, h: 1 }]},
   },
-  1: { sat: ['o'] },
+  1: { sat: [{cls: 'm l', href: './Unknown.pdf'}] },
 },
 B: {
   template: {
     sat: { transform: 'translate(0,1024)', slots: [
       { x: 1023, y: 2453, w: 1, h: 1 }]},
   },
-  1: { sat: ['o'] },
+  1: { sat: [{cls: 'm l', href: './Unknown.pdf'}] },
 },
 C: {
   template: {
     sat: { transform: 'translate(0,1024)', slots: [
       { x: 1023, y: 2453, w: 1, h: 1 }]},
   },
-  1: { sat: ['o'] },
+  1: { sat: [{cls: 'm l', href: './Unknown.pdf'}] },
 },
 D: {
   template: {
     sat: { transform: 'translate(0,1024)', slots: [
       { x: 1023, y: 2453, w: 1, h: 1 }]},
   },
-  1: { sat: ['o'] },
+  1: { sat: [{cls: 'm l', href: './Unknown.pdf'}] },
 },
 E: {
   template: {
     sat: { transform: 'translate(0,1024)', slots: [
       { x: 1023, y: 2453, w: 1, h: 1 }]},
   },
-  1: { sat: ['o'] },
+  1: { sat: [{cls: 'm l', href: './Unknown.pdf'}] },
 },
 };
