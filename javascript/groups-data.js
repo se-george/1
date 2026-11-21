@@ -21,23 +21,12 @@ wed:{transform:'translate(0,1828)',
 slots:[
 {x:829,y:0,w:123,h:417},
 {x:680,y:0,w:149,h:417}]},},
-10:{
-wed:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'}],
-tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'}],
-sun:[
-{cls:'m s',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'}],
-sat:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m s',href:'./Unknown.pdf'},],},
+10: {
+wed: ['o', 'o'],
+tue: ['o', 'o', 'o', 'o'],
+sun: ['o', 'o', 'o'],
+sat: ['o', 
+{cls:'m l',href:'Unknown.pdf'},'o'],},
 9:{
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
