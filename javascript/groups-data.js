@@ -22,9 +22,8 @@ wed: ['o', 'o'],
 tue: ['o', 'o', 'o', 'o'],
 sun: ['o', 'o', 'o'],
 sat: ['o', 
-{cls: 'm l', href:
-'./Bio/???.pdf'},
-'o'],},
+{cls: 'm l', href: './Bio/Lecture/???.pdf'},
+{cls: 'm s', href: './Bio/Section/???.pdf'}, ],},
 9: {
 wed: ['o', 'o'],
 tue: ['o', 'o', 'o', 'o'],
