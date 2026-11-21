@@ -18,16 +18,26 @@ wed: { transform: 'translate(0,1828)', slots: [
 { x: 828.759, y: 0, w: 123.080, h: 417.683 },
 { x: 680.349, y: 0, w: 148.764, h: 416.255 }]},},
 10: {
-wed: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
-tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
-sun: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
-sat: [{cls: 'm l', href: './Unknown.pdf'}, 
-{cls: 'm l', href: './Bio/Lecture/???.pdf'},
+wed: [
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'}],
+tue: [
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'}],
+sun: [
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'}],
+sat: [
+{cls: 'm l', href: './Unknown.pdf'}, 
+{cls: 'm l', href: './Unknown.pdf'},
 {cls: 'm s', href: './Bio/Section/???.pdf'}, ],},
 9: {
 wed: [
-{cls: 'm l', href: './Unknown.pdf'}
-  , {cls: 'm l', href: './Unknown.pdf'}],
+{cls: 'm l', href: './Unknown.pdf'},
+{cls: 'm l', href: './Unknown.pdf'}],
 tue: [{cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}, {cls: 'm l', href: './Unknown.pdf'}],
 sun: [
 {cls: 'm s', href:
