@@ -31,8 +31,7 @@ sat: [
 {cls:'m l',href:'Unknown.pdf'}],},
 9:{
 wed:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/07_complex number.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
 {cls:'m s',href:'./Unknown.pdf'},
@@ -45,13 +44,12 @@ sun:[
 {cls:'m s',href:'./Unknown.pdf'}],
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Bio/Lecture/06_Proteins.pdf'},
-{cls:'m s',href:'./Bio/Section/Carbohydrates.pdf'},],},
+{cls:'m l',href:'./Bio/Lecture.                            /06_Proteins.pdf'},
+{cls:'m s',href:'./Bio/Section.                      /Carbohydrates.pdf'},],},
 8:{
 wed:[
-{cls:'m l',href:
-'./Precalculus/Lecture/06_Matrix.pdf'},
-{cls:'m l',href:'./CCS/Lecture/c_overview-am.pdf '},],
+{cls:'m l',href:'./Precalculus/Lecture.                      /06_Matrix.pdf'},
+{cls:'m l',href:'./CCS/Lecture.                       /c_overview-am.pdf '},],
 tue:[
 {cls:'m l',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'},
@@ -69,8 +67,8 @@ sat:[
 {cls:'m l',href:'./Unknown.pdf'},'x','x'],
 sun:['x','x','x'],
 tue:['x','x','x','x'],
-wed:[
-{cls:'m l',href:'./CCS/Lecture/Problem Solving.pdf'},'x',],},
+wed:['x',
+{cls:'m l',href:'./CCS/Lecture/Problem Solving.pdf'},],},
 6:{
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
@@ -86,7 +84,7 @@ tue:[
 {cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/05_A of Diversion'},
+{cls:'m l',href:'./Precalculus/Lecture.                 /05_Drivatives.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],},
 5:{
 sat:[
@@ -95,7 +93,7 @@ sat:[
 {cls:'m s',href:'./Unknown.pdf'}],
 sun:[
 {cls:'m s',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Business/Lecture/04_Globl Context.pdf'},
+{cls:'m l',href:'./Business/Lecture.                  /04_Globl Context.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
 {cls:'m s',href:'./Unknown.pdf'},
@@ -103,7 +101,7 @@ tue:[
 {cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.                 /04_Exponential.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],},
 4:{
 sat:[
@@ -120,7 +118,7 @@ tue:[
 {cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.         /03_Differentiation(2).pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],},
 3:{
 sat:[
@@ -137,7 +135,7 @@ tue:[
 {cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.          /02_differentiation(1).pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],},
 2:{
 sat:[
@@ -154,11 +152,11 @@ tue:[
 {cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.                     /01_Limits.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],},
 1:{
 sat:[[
-{cls:'m l',href:'./Precalculus/Lecture/Matrix.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.                        /Matrix.pdf'},
 {cls:'m q',href:'./Precalculus/Lecture/Quiz1.pdf'},
 {cls:'m a',href:'./Precalculus/Lecture/Recap.pdf'},],
 {cls:'m l',href:'./Unknown.pdf'},{cls:'m l',href:'./Unknown.pdf'},],
