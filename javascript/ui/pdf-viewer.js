@@ -1,25 +1,19 @@
 // ============================================
 // pdf-viewer.js - معاينة PDF وفتحه بطرق متعددة
-// مع تحسين جودة المعاينة ومعالجة أخطاء أفضل
-// وإضافة زر عين قابل للسحب داخل PDF
 // ============================================
 
 import { RAW_CONTENT_BASE, NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState } from '../core/navigation.js';
-import { resetBrowserZoom, getThumbUrl } from '../core/utils.js';
+import { resetBrowserZoom, getThumbUrl, resetSvgZoom } from '../core/utils.js';
 
 export let currentPreviewItem = null;
 export let isToolbarExpanded = false;
-export let isPdfToolbarHidden = false; // حالة إخفاء شريط أدوات PDF
+export let isPdfToolbarHidden = false; 
 
-// متغيرات السحب للزر
 let dragActive = false;
 let startX, startY, initialLeft, initialTop;
-let currentBlobUrl = null; // لتتبع الـ Blob URL النشط ومسحه من الذاكرة
+let currentBlobUrl = null; 
 
-// ---------- تحميل PDF.js عند الحاجة فقط ----------
-// ⚡ المكتبة + الـ worker (تقال) مبقوش بيتحمّلوا في كل زيارة: بيتحمّلوا أول ما نحتاج نرسم صفحة PDF،
-//    ولو الملف ليه thumbnail جاهز (thumbs/) مش بنحتاجهم خالص. التخزين بيتم في كاش الـ SW (sw.js).
 const PDFJS_VERSION = '3.11.174';
 const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/`;
 const PDFJS_CMAPS = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/cmaps/`;
@@ -31,13 +25,13 @@ export function ensurePdfJs() {
         pdfJsPromise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = PDFJS_BASE + 'pdf.min.js';
-            script.crossOrigin = 'anonymous'; // رد CORS عادي (مش opaque)
+            script.crossOrigin = 'anonymous';
             script.onload = () => {
                 window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js';
                 resolve(window.pdfjsLib);
             };
             script.onerror = () => {
-                pdfJsPromise = null; // نسمح بمحاولة تانية
+                pdfJsPromise = null; 
                 reject(new Error('PDF.js غير محمل'));
             };
             document.head.appendChild(script);
@@ -46,7 +40,6 @@ export function ensurePdfJs() {
     return pdfJsPromise;
 }
 
-// إعدادات تحميل الـ PDF في مكان واحد (كانت مكررة في المعاينتين)
 async function loadPdfDocument(url) {
     const pdfjs = await ensurePdfJs();
     return pdfjs.getDocument({
@@ -59,11 +52,10 @@ async function loadPdfDocument(url) {
     }).promise;
 }
 
-// صورة الصفحة الأولى الجاهزة (thumbnail) — null لو مش موجودة/فشلت فنرجع لـ PDF.js
 function loadImage(url) {
     return new Promise(resolve => {
         const img = new Image();
-        img.crossOrigin = 'anonymous'; // نفس نمط الطلب كل مرة = نفس عنصر الكاش
+        img.crossOrigin = 'anonymous'; 
         img.onload = () => resolve(img);
         img.onerror = () => resolve(null);
         img.src = url;
@@ -73,13 +65,15 @@ function loadImage(url) {
 const previewErrorMessage = (error) =>
     error && error.name === 'MissingPDFException' ? '❌ الملف غير موجود' : '❌ فشل التحميل';
 
-// أحدث فتح بس هو اللي يترسم (لو المستخدم فتح/قفل ملف تاني بسرعة)
-let previewToken = 0; // معاينة الضغط المطوّل
-let methodToken = 0;  // نافذة خيارات الفتح
+let previewToken = 0; 
+let methodToken = 0;  
 
-// ---------- معاينة PDF (محدثة بجودة عالية) ----------
 export async function showPDFPreview(item) {
     if (!item || !item.path) return;
+
+    // ✅ إلغاء الزوم عند فتح المعاينة
+    resetBrowserZoom();
+    resetSvgZoom();
 
     const popup = document.getElementById('pdf-preview-popup');
     const canvas = document.getElementById('preview-canvas');
@@ -95,7 +89,6 @@ export async function showPDFPreview(item) {
     const fileName = item.path.split('/').pop();
     const url = `${RAW_CONTENT_BASE}${item.path}`;
 
-    // إظهار النافذة
     popup.classList.remove('hidden');
     popup.style.display = 'flex';
 
@@ -111,7 +104,6 @@ export async function showPDFPreview(item) {
 
     canvas.style.display = 'none';
 
-    // إزالة أي صورة معاينة قديمة
     const oldImg = popup.querySelector('img[alt^="معاينة"]');
     if (oldImg) oldImg.remove();
 
@@ -125,28 +117,24 @@ export async function showPDFPreview(item) {
     const token = ++previewToken;
 
     try {
-        // ⚡ لو في thumbnail جاهز (بيتولّد تلقائي) بنعرضه فوراً من غير تحميل الـ PDF ولا PDF.js
         const thumbUrl = getThumbUrl(item.path);
         const thumbImg = thumbUrl ? await loadImage(thumbUrl) : null;
         let imgData = thumbImg ? thumbImg.src : null;
 
         if (!imgData) {
-            // مفيش thumbnail: نرسم أول صفحة بـ PDF.js (بيتحمّل عند الحاجة بس)
             const pdf = await loadPdfDocument(url);
             console.log('📄 PDF محمل:', pdf.numPages, 'صفحة');
 
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale: 2.0 }); // زيادة الدقة
+            const viewport = page.getViewport({ scale: 2.0 }); 
 
-            // ضبط أبعاد canvas
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
-            const context = canvas.getContext('2d', { alpha: false });
+            const context = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
             context.fillStyle = 'white';
             context.fillRect(0, 0, canvas.width, canvas.height);
 
-            // رسم الصفحة
             const renderContext = {
                 canvasContext: context,
                 viewport: viewport,
@@ -155,16 +143,13 @@ export async function showPDFPreview(item) {
             };
 
             await page.render(renderContext).promise;
-
-            // تحويل canvas إلى صورة PNG
             imgData = canvas.toDataURL('image/png', 1.0);
         }
 
-        if (token !== previewToken) return; // اتفتح/اتقفل ملف تاني في الأثناء
+        if (token !== previewToken) return; 
 
-        // إنشاء عنصر img لعرض الصورة
         const previewImg = document.createElement('img');
-        previewImg.crossOrigin = 'anonymous'; // نفس نمط طلب الـ thumbnail (نفس عنصر الكاش)
+        previewImg.crossOrigin = 'anonymous'; 
         previewImg.src = imgData;
         previewImg.style.width = '100%';
         previewImg.style.height = 'auto';
@@ -205,7 +190,7 @@ export async function showPDFPreview(item) {
 }
 
 export function closePDFPreview() {
-    previewToken++; // نلغي أي تحميل لسه شغّال
+    previewToken++; 
     const popup = document.getElementById('pdf-preview-popup');
     const canvas = document.getElementById('preview-canvas');
 
@@ -229,8 +214,11 @@ export function closePDFPreview() {
     console.log('🔒 تم إغلاق المعاينة');
 }
 
-// ---------- عرض خيارات الفتح ----------
 export function showOpenOptions(item) {
+    // ✅ إلغاء الزوم عند فتح نافذة الخيارات
+    resetBrowserZoom();
+    resetSvgZoom();
+
     const popup = document.getElementById('open-method-popup');
     const canvas = document.getElementById('method-preview-canvas');
     const loading = document.getElementById('method-loading');
@@ -262,7 +250,6 @@ export function showOpenOptions(item) {
         const token = ++methodToken;
         (async () => {
             try {
-                // ⚡ thumbnail جاهز: نرسمه على نفس الـ canvas من غير تحميل الـ PDF ولا PDF.js
                 const thumbUrl = getThumbUrl(item.path);
                 const thumbImg = thumbUrl ? await loadImage(thumbUrl) : null;
 
@@ -270,7 +257,7 @@ export function showOpenOptions(item) {
                     if (token !== methodToken) return;
                     canvas.width = thumbImg.naturalWidth;
                     canvas.height = thumbImg.naturalHeight;
-                    canvas.getContext('2d', { alpha: false }).drawImage(thumbImg, 0, 0);
+                    canvas.getContext('2d', { alpha: false, willReadFrequently: true }).drawImage(thumbImg, 0, 0);
                 } else {
                     const pdf = await loadPdfDocument(url);
                     const page = await pdf.getPage(1);
@@ -280,7 +267,7 @@ export function showOpenOptions(item) {
                     canvas.width = viewport.width;
                     canvas.height = viewport.height;
 
-                    const context = canvas.getContext('2d', { alpha: false });
+                    const context = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
                     context.fillStyle = 'white';
                     context.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -303,7 +290,7 @@ export function showOpenOptions(item) {
 }
 
 export function closeOpenOptions() {
-    methodToken++; // نلغي أي تحميل لسه شغّال
+    methodToken++; 
     const popup = document.getElementById('open-method-popup');
     if (popup) {
         popup.classList.add('hidden');
@@ -311,14 +298,15 @@ export function closeOpenOptions() {
     }
 }
 
-// ---------- طرق الفتح (مُصححة ومُحسنة) ----------
-
-// 1. الفتح عبر Google Drive
 export function openWithDrive(item) {
     if (!item) {
         console.error('❌ openWithDrive: item is null');
         return;
     }
+
+    // ✅ إلغاء الزوم قبل فتح Drive
+    resetBrowserZoom();
+    resetSvgZoom();
 
     const url = `${RAW_CONTENT_BASE}${item.path}`;
     const driveUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
@@ -332,16 +320,18 @@ export function openWithDrive(item) {
     console.log('💾 فتح بـ Google Drive:', driveUrl);
 }
 
-// 2. الفتح بالمتصفح (مباشر دون حظر النافذة المنبثقة)
 export function openWithBrowser(item) {
     if (!item) {
         console.error('❌ openWithBrowser: item is null');
         return;
     }
 
+    // ✅ إلغاء الزوم قبل فتح المتصفح
+    resetBrowserZoom();
+    resetSvgZoom();
+
     const url = `${RAW_CONTENT_BASE}${item.path}`;
 
-    // استخدام عنصر <a> محاكى لضمان عدم حظر النوافذ المنبثقة
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';
@@ -358,15 +348,12 @@ export function openWithBrowser(item) {
     console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
 }
 
-
 export function smartOpen(item) {
     if (!item || !item.path) return;
     showOpenOptions(item);
 }
 
-// ---------- تهيئة مستمعات الأحداث ----------
 export function initPDFViewer() {
-
     const closePreviewBtn = document.getElementById('preview-close-btn');
     const openFromPreviewBtn = document.getElementById('preview-open-btn');
     const previewPopup = document.getElementById('pdf-preview-popup');
@@ -458,6 +445,7 @@ export function initPDFViewer() {
                 currentBlobUrl = null;
             }
             resetBrowserZoom();
+            resetSvgZoom(); // ✅ إلغاء الزوم عند إغلاق PDF Overlay
             popNavigationState();
         });
     }
