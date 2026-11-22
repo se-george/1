@@ -1,20 +1,34 @@
 // ============================================
-// utils.js - دوال مساعدة عامة (محدّث)
+// utils.js - دوال مساعدة عامة (محدّث بالكامل)
 // ============================================
 
 import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR } from './config.js';
 import { thumbIndex } from './state.js';
 
 // ------------------------------
-// توليد كود HEX عشوائي فريد (مثال: 4A8F9C2B)
+// توليد كود HEX فريد بناءً على الجهاز والوقت
 // ------------------------------
 export function getStaticHexId() {
     let hex = localStorage.getItem('static_hex_id');
     if (!hex) {
-        // توليد 4 بايت عشوائية آمنة وتحويلها لـ HEX
-        const array = new Uint8Array(4);
-        window.crypto.getRandomValues(array);
-        hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        // 1. جمع بصمة الجهاز والوقت
+        const deviceInfo = [
+            Date.now().toString(),                   // التاريخ والساعة بالملي ثانية
+            navigator.userAgent,                     // نوع المتصفح ونظام التشغيل
+            screen.width + 'x' + screen.height,      // دقة الشاشة
+            window.devicePixelRatio,                 // كثافة البكسل
+            navigator.language,                      // لغة الجهاز
+            Math.random().toString(36).substring(2, 8) // عامل عشوائي إضافي
+        ].join('|');
+
+        // 2. تحويل النص إلى كود HEX (خوارزمية djb2)
+        let hash = 5381;
+        for (let i = 0; i < deviceInfo.length; i++) {
+            hash = ((hash << 5) + hash) + deviceInfo.charCodeAt(i);
+        }
+
+        // 3. تحويل الرقم لـ HEX وتكبيره لـ 8 خانات
+        hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
         localStorage.setItem('static_hex_id', hex);
     }
     return hex;
@@ -102,7 +116,7 @@ export function getGroupImage(element) {
 }
 
 // ------------------------------
-// أسماء المستخدمين والأجهزة (معدلة)
+// أسماء المستخدمين والأجهزة
 // ------------------------------
 export function getDisplayName() {
     const realName = localStorage.getItem('user_real_name');
@@ -127,7 +141,6 @@ export function getDeviceId() {
     }
     const stored = localStorage.getItem('device_fingerprint');
     if (stored) return stored;
-    // المعرف الافتراضي هو كود HEX
     return getStaticHexId();
 }
 
