@@ -11,12 +11,11 @@ const CDN_HOST = 'cdnjs.cloudflare.com';
 const API_HOST = 'api.github.com';               
 const WARM_HOSTS = [RAW_HOST, CDN_HOST, API_HOST];
 
-const NETWORK_TIMEOUT_MS = 6000;                 
+const NETWORK_TIMEOUT_MS = 600;                 
 const MAX_CONTENT_ENTRIES = 150;                 
 const MAX_CONTENT_BYTES = 80 * 1024 * 1024;      
 const TRIM_EVERY = 10;                           
 
-// ✅ تمت إزالة ملف leaderboard.json لأننا دمجناه في الكود
 const urlsToCache = [
    './',
    './index.html',
@@ -176,9 +175,14 @@ function precacheAll() {
         await Promise.all(urlsToCache.map(async url => {
             const fileName = url.split('/').pop() || 'index.html';
             try {
-                if (!(await cache.match(url))) {
-                    broadcast({ type: 'PRECACHE_START', file: fileName });
-                    await cache.add(new Request(url, { cache: 'no-cache' }));
+                // ✅ استخدام cache: 'reload' يتجاوز كاش المتصفح (HTTP Cache) ويجلب أحدث نسخة قسراً
+                const request = new Request(url, { cache: 'reload' });
+                const response = await fetch(request);
+                
+                if (response.ok) {
+                    await cache.put(request, response);
+                } else {
+                    failed.push(url);
                 }
             } catch (err) {
                 failed.push(url);
@@ -313,10 +317,10 @@ self.addEventListener('fetch', event => {
     const url = new URL(request.url);
     if (url.pathname.endsWith('/sw.js')) return;
 
-    // ✅ استراتيجية Network First لملفات الـ HTML لضمان تحديثها دائماً
+    // ✅ Network First لملفات الـ HTML لضمان تحديثها دائماً (تجاوز الكاش)
     if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
         event.respondWith(
-            fetch(request)
+            fetch(request, { cache: 'no-store' }) // نتجاوز كاش المتصفح دائماً
                 .then(response => {
                     const copy = response.clone();
                     caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
