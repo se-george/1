@@ -93,7 +93,7 @@ sat:[
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture.                  /04_Globl Context.pdf'},
+{cls:'m l',href:'./Business/Lecture                /04_Globl Context.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -101,7 +101,7 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture.                 /04_Exponential.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/                  04_Exponential.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 4:{
 sat:[
@@ -110,7 +110,7 @@ sat:[
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture/03_Ownership.pdf'},
+{cls:'m l',href:'./Business/Lecture/                      03_Ownership.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -118,16 +118,16 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture.         /03_Differentiation(2).pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/           03_Differentiation(2).pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 3:{
 sat:[
 {cls:'m l',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/02_Basics.pdf'},
+{cls:'m l',href:'./Bio/Lecture/                               02_Basics.pdf'},
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture/02_Ethics.pdf'},
+{cls:'m l',href:'./Business/Lecture                         /02_Ethics.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -140,11 +140,11 @@ wed:[
 2:{
 sat:[
 {cls:'m l',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/01_Introduction.pdf'},
+{cls:'m l',href:'./Bio/Lecture                        /01_Introduction.pdf'},
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture/01_Fundamentals.pdf'},
+{cls:'m l',href:'./Business/Lecture.                   /01_Fundamentals.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -152,13 +152,13 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture.                     /01_Limits.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture.                      /01_Limits.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 1:{
 sat:[[
-{cls:'m l',href:'./Precalculus/Lecture.                        /Matrix.pdf'},
-{cls:'m q',href:'./Precalculus/Lecture/Quiz1.pdf'},
-{cls:'m a',href:'./Precalculus/Lecture/Recap.pdf'},],
+{cls:'m l',href:'./Precalculus/Lecture.                         /Matrix.pdf'},
+{cls:'m q',href:'./Precalculus/Lecture.                          /Quiz1.pdf'},
+{cls:'m a',href:'./Precalculus/Lecture.                        /Recap.pdf'},],
 {cls:'m l',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'},],
 sun:[
