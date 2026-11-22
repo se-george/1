@@ -25,15 +25,15 @@ slots:[
 wed: ['o', 'o'],
 tue: ['o', 'o', 'o', 'o'],
 sun: ['o', 
-{cls:'m l',href:'Business/Lecture/                        06_Organizing.pdf'},
+{cls:'m l',href:'Business/Lecture/06_Organizing.pdf'},
 'o'],
 sat: [
 {cls:'m l',href:'×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/                           07&08_Enzymes.pdf'},
+{cls:'m l',href:'./Bio/Lecture/07&08_Enzymes.pdf'},
 {cls:'m l',href:'×××××××××××.pdf'}],},
 9:{
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/               07_complex number.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/07_complex number.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -46,11 +46,11 @@ sun:[
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sat:[
 {cls:'m l',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/                             06_Proteins.pdf'},
+{cls:'m l',href:'./Bio/Lecture/06_Proteins.pdf'},
 {cls:'m s',href:'./Bio/Section/                       Carbohydrates.pdf'},],},
 8:{
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/                       06_Matrix.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/06_Matrix.pdf'},
 {cls:'m l',href:'./CCS/Lecture/                        c_overview-am.pdf '},],
 tue:[
 {cls:'m l',href:'./×××××××××××.pdf'},
@@ -63,7 +63,7 @@ sun:[
 {cls:'m l',href:'./×××××××××××.pdf'}],
 sat:[
 {cls:'m l',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/                         05_A-Transport.pdf'},
+{cls:'m l',href:'./Bio/Lecture/05_A-Transport.pdf'},
 {cls:'m s',href:'./×××××××××××.pdf'}],},
 7:{
 sat:[
@@ -88,7 +88,7 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/                   05_Drivatives.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/05_Drivatives.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 5:{
 sat:[
@@ -105,7 +105,7 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/                 04_Exponential.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/04_Exponential.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 4:{
 sat:[
@@ -114,7 +114,7 @@ sat:[
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture/                      03_Ownership.pdf'},
+{cls:'m l',href:'./Business/Lecture/03_Ownership.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -122,12 +122,12 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/           03_Differentiation(2).pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/03_Differentiation(2).pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 3:{
 sat:[
 {cls:'m l',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Bio/Lecture/                               02_Basics.pdf'},
+{cls:'m l',href:'./Bio/Lecture/02_Basics.pdf'},
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -139,7 +139,7 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/          02_differentiation(1).pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/02_differentiation(1).pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 2:{
 sat:[
@@ -148,7 +148,7 @@ sat:[
 {cls:'m s',href:'./×××××××××××.pdf'}],
 sun:[
 {cls:'m s',href:'./×××××××××××.pdf'},
-{cls:'m l',href:'./Business/Lecture/                    01_Fundamentals.pdf'},
+{cls:'m l',href:'./Business/Lecture/01_Fundamentals.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
@@ -156,7 +156,7 @@ tue:[
 {cls:'m s',href:'./×××××××××××.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],
 wed:[
-{cls:'m l',href:'./Precalculus/Lecture/                       01_Limits.pdf'},
+{cls:'m l',href:'./Precalculus/Lecture/01_Limits.pdf'},
 {cls:'m l',href:'./×××××××××××.pdf'}],},
 1:{
 sat:[[
