@@ -2,9 +2,9 @@
 // sw.js - Service Worker
 // ============================================================
 const CACHE_PREFIX = 'semester-1-';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v79';   // الواجهة (HTML/CSS/JS/صور الموقع): بتتمسح مع كل إصدار
+const CACHE_NAME = CACHE_PREFIX + 'cache-v80';   // الواجهة (HTML/CSS/JS/صور الموقع): بتتمسح مع كل إصدار
 const CONTENT_CACHE = CACHE_PREFIX + 'content';  // محتوى خارجي (raw/cdnjs/شجرة الملفات): بيفضل بين الإصدارات وله حد أقصى
-const LEGACY_CACHES = ['semester-3-cache-v3'];   // أسماء قديمة كانت بتتكتب من ملفات تانية — بتتمسح تلقائياً
+const LEGACY_CACHES = ['semester-3-cache-v4'];   // أسماء قديمة كانت بتتكتب من ملفات تانية — بتتمسح تلقائياً
 
 const RAW_HOST = 'raw.githubusercontent.com';    // PDF / صور المحتوى / thumbnails
 const CDN_HOST = 'cdnjs.cloudflare.com';         // PDF.js (بيتحمّل عند الحاجة)
