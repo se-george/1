@@ -3,7 +3,7 @@
 // ============================================
 
 import { NAV_STATE } from '../core/config.js';
-import { clearAppCaches } from '../core/utils.js';
+import { clearAppCaches, getStaticHexId } from '../core/utils.js';
 import { goToWood, pushNavigationState, goToMapEnd } from '../core/navigation.js';
 
 export function setupGroupChangeButton() {
@@ -53,15 +53,24 @@ export function setupResetButton() {
         resetBtn.addEventListener('click', async function (e) {
             e.stopPropagation();
 
-            const confirmReset = confirm('⚠️ سيتم حذف جميع الملفات المحمية (Cache) وإعادة ضبط الموقع بالكامل. هل تريد الاستمرار؟');
+            const confirmReset = confirm('⚠️ سيتم حذف جميع الملفات المحمية (Cache) وإعادة ضبط الموقع (باستثناء كود التعريف الخاص بك). هل تريد الاستمرار؟');
             if (!confirmReset) return;
 
             console.log('🧹 بدء التنظيف الشامل...');
 
+            // ✅ 1. التأكد من توليد وحفظ الـ HEX ID قبل المسح
+            const staticHexId = getStaticHexId();
+
+            // 2. مسح الذاكرة
             localStorage.clear();
             sessionStorage.clear();
 
-            // ✅ مسح الكاش بيتم من خلال الـ Service Worker فقط (sw.js هو المصدر الوحيد للكاش)
+            // ✅ 3. استعادة كود الـ HEX فوراً حتى لا يضيع
+            if (staticHexId) {
+                localStorage.setItem('static_hex_id', staticHexId);
+            }
+
+            // ✅ 4. مسح الكاش من خلال الـ SW
             await clearAppCaches();
             console.log('📡 الـ SW مسح كاش التطبيق');
 
@@ -101,8 +110,6 @@ export function setupBackButtonInSVG(getCurrentFolder, setCurrentFolder, updateW
     if (backButtonGroup) {
         backButtonGroup.onclick = (e) => {
             e.stopPropagation();
-
-            // الحصول على القيمة الحالية في كل نقرة
             const folder = getCurrentFolder();
 
             if (folder !== "") {
