@@ -7,11 +7,10 @@ import { preventInteractionWhenHidden, initWoodUI, updateWelcomeMessages } from 
 import { initPDFViewer } from './javascript/ui/pdf-viewer.js';
 import { initializeGroup, loadSelectedGroup } from './javascript/core/group-loader.js';
 import { scan } from './javascript/features/svg-processor.js';
-import { resetBrowserZoom } from './javascript/core/utils.js';
+import { resetBrowserZoom, setupMouseWheelZoom } from './javascript/core/utils.js';
 import { smartOpen } from './javascript/ui/pdf-viewer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // الاستماع للضغط على مستطيلات الـ SVG
     const svgContainer = document.getElementById('main-svg');
     if (svgContainer) {
         svgContainer.addEventListener('click', (e) => {
@@ -29,12 +28,10 @@ document.addEventListener('DOMContentLoaded', () => {
 const updateBtn = document.getElementById('check-update-btn');
 if (updateBtn) {
     updateBtn.addEventListener('click', () => {
-        // بيتحمّل وقت الضغط بس (مش في كل زيارة)
         import('./javascript/core/update-checker.js').then(({ checkForUpdates }) => checkForUpdates());
     });
 }
 
-// ---------- تحميل آخر جروب تلقائياً ----------
 function autoLoadLastGroup() {
     const preloadDone = localStorage.getItem('preload_done');
 
@@ -57,7 +54,6 @@ function autoLoadLastGroup() {
     }
 }
 
-// ---------- مراقب تغيير Z-Index (إعادة تعيين التكبير) ----------
 function observeZIndexChanges() {
     let zoomTimeout;
     const shouldTriggerReset = (el) => {
@@ -113,11 +109,7 @@ function observeZIndexChanges() {
     console.log('✅ مراقبة z-index وظهور/اختفاء الشاشات مفعّلة');
 }
 
-// ---------- التهيئة عند تحميل DOM ----------
 document.addEventListener('DOMContentLoaded', () => {
-    // ══════════════════════════════════════════════════════
-    // 🆕 تهيئة سويتش الـ Hover — دايماً (قبل أي شرط)
-    // ══════════════════════════════════════════════════════
     const hoverSwitch = document.getElementById('js-toggle');
     if (hoverSwitch) {
         const savedHoverState = localStorage.getItem('disable_hover');
@@ -136,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('disable_hover', 'true');
                 console.log('🚫 تم إيقاف الـ Hover');
 
-                // 🆕 تنظيف أي hover نشط حالياً
                 import('./javascript/features/svg-processor.js')
                     .then(({ cleanupHover }) => {
                         if (typeof cleanupHover === 'function') cleanupHover();
@@ -146,20 +137,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ══════════════════════════════════════════════════════
-    // التهيئة العادية
-    // ══════════════════════════════════════════════════════
     const preloadDone = localStorage.getItem('preload_done');
 
     if (!preloadDone) {
-        // أول زيارة: نظهر شاشة الـ preload فوراً (من غير وميض شاشة اختيار الجروب)،
-        // وكود اللعبة والـ leaderboard بيتحمّل وقت الحاجة بس — مش للزوار القدام.
         document.getElementById('preload-screen')?.classList.remove('hidden');
         import('./javascript/features/preload-game.js')
             .then(({ initPreloadSystem }) => initPreloadSystem())
             .catch(err => console.error('❌ فشل تحميل شاشة الـ preload:', err));
     } else {
-        // زيارة سابقة: نكمل التحميل الطبيعي
         autoLoadLastGroup();
         setupBackButton();
         preventInteractionWhenHidden();
@@ -168,7 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
         observeZIndexChanges();
         updateWelcomeMessages();
 
-        // منع القائمة اليمنى على الصور
+        // ✅ تفعيل ميزة الزوم بعجلة الماوس (بكرة الماوس بين الزرين)
+        setupMouseWheelZoom();
+
         document.addEventListener('contextmenu', (e) => {
             const target = e.target;
             if (target.tagName === 'image' ||
@@ -188,19 +175,15 @@ document.addEventListener('DOMContentLoaded', () => {
 export { scan };
 
 // ==========================================
-// PWA Install Prompt Handler (Robust)
+// PWA Install Prompt Handler
 // ==========================================
 let deferredPrompt = null;
 
 function showPWAInstallButton() {
     const installBtn = document.getElementById('pwa-install-btn');
-    if (!installBtn) {
-        console.warn('⚠️ #pwa-install-btn مش موجود في HTML');
-        return;
-    }
+    if (!installBtn) return;
     installBtn.style.display = 'inline-flex';
 
-    // ربط الـ click مرة واحدة بس
     if (!installBtn.dataset.bound) {
         installBtn.dataset.bound = 'true';
         installBtn.addEventListener('click', async () => {
@@ -215,7 +198,6 @@ function showPWAInstallButton() {
                 const result = await promptEvent.userChoice;
                 console.log('📲 نتيجة التثبيت:', result.outcome);
                 if (result.outcome !== 'accepted') {
-                    // لو رفض، نخلي الزر يرجع بعد شوية
                     setTimeout(() => {
                         const btn = document.getElementById('pwa-install-btn');
                         if (btn && !window.matchMedia('(display-mode: standalone)').matches) {
@@ -232,7 +214,6 @@ function showPWAInstallButton() {
     }
 }
 
-// 1) استقبال الحدث
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -241,7 +222,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
     showPWAInstallButton();
 });
 
-// 2) الـ inline script في index.html بيبعت الحدث ده كـ fallback
 window.addEventListener('pwaInstallReady', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -249,7 +229,6 @@ window.addEventListener('pwaInstallReady', () => {
     }
 });
 
-// 3) لو الحدث اتطلق قبل ما الملف يتحمّل
 document.addEventListener('DOMContentLoaded', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -257,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 4) بعد التثبيت
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     window._pwaPrompt = null;
@@ -266,7 +244,6 @@ window.addEventListener('appinstalled', () => {
     console.log('🎉 تم تثبيت التطبيق بنجاح');
 });
 
-// 5) لو التطبيق مفتوح في وضع standalone (متثبت بالفعل) → نخفي الزر
 if (window.matchMedia('(display-mode: standalone)').matches ||
     window.navigator.standalone === true) {
     const installBtn = document.getElementById('pwa-install-btn');
