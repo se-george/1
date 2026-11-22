@@ -1,23 +1,18 @@
-// ============================================================
+// ================================================
 // sw.js - Service Worker
-// ============================================================
+// ================================================
 const CACHE_PREFIX = 'semester-1-';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v79';   // الواجهة (HTML/CSS/JS/صور الموقع): بتتمسح مع كل إصدار
-const CONTENT_CACHE = CACHE_PREFIX + 'content';  // محتوى خارجي (raw/cdnjs/شجرة الملفات): بيفضل بين الإصدارات وله حد أقصى
-const LEGACY_CACHES = ['semester-3-cache-v3'];   // أسماء قديمة كانت بتتكتب من ملفات تانية — بتتمسح تلقائياً
-
-const RAW_HOST = 'raw.githubusercontent.com';    // PDF / صور المحتوى / thumbnails
-const CDN_HOST = 'cdnjs.cloudflare.com';         // PDF.js (بيتحمّل عند الحاجة)
-const API_HOST = 'api.github.com';               // شجرة الملفات
+const CACHE_NAME = CACHE_PREFIX + 'cache-v0';
+const CONTENT_CACHE = CACHE_PREFIX + 'content';
+const LEGACY_CACHES = ['semester-1-cache-v0'];
+const RAW_HOST = 'raw.githubusercontent.com';
+const CDN_HOST = 'cdnjs.cloudflare.com';
+const API_HOST = 'api.github.com';
 const WARM_HOSTS = [RAW_HOST, CDN_HOST, API_HOST];
-
-const NETWORK_TIMEOUT_MS = 6000;                 // الشجرة: لو GitHub بطيء/محجوب نرجع لآخر نسخة سليمة
-const MAX_CONTENT_ENTRIES = 150;                 // حدود كاش المحتوى الخارجي
-const MAX_CONTENT_BYTES = 80 * 1024 * 1024;      // (للردود اللي حجمها معروف)
-const TRIM_EVERY = 10;                           // نفحص الحدود كل N عملية تخزين
-
-// ✅ القائمة الوحيدة للملفات اللي بتتحمّل مسبقاً (بالتوازي).
-//    شاشة الـ preload بتعرض تقدّمها بس — مفيش قائمة تانية في أي ملف.
+const NETWORK_TIMEOUT_MS = 6000;
+const MAX_CONTENT_ENTRIES = 150;
+const MAX_CONTENT_BYTES = 80 * 1024 * 1024;
+const TRIM_EVERY = 10;
 const urlsToCache = [
    './',
    './index.html',
