@@ -35,7 +35,24 @@ const ALLOWED_EXTENSIONS = [
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
+// ---------- ملفات مستثناة (مسار كامل أو اسم ملف بالأحرف الصغيرة) ----------
+const EXCLUDED_FILES = [
+    'XXXXXXXXXXX.pdf'
+    // مثال لمسار كامل: 'arabic/unknown.pdf'
+];
+
+const isExcludedFile = (path) => {
+    const normalizedPath = path.replace(/^\.\//, '').toLowerCase();
+    const fileName = path.split('/').pop().toLowerCase();
+
+    return EXCLUDED_FILES.some(excluded => {
+        const cleanExcluded = excluded.replace(/^\.\//, '').toLowerCase();
+        return normalizedPath === cleanExcluded || fileName === cleanExcluded;
+    });
+};
+
 const isSupportedFile = (path) => {
+    if (isExcludedFile(path)) return false;
     const ext = path.split('.').pop().toLowerCase();
     return ALLOWED_EXTENSIONS.includes(ext);
 };
