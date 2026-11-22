@@ -175,23 +175,46 @@ document.addEventListener('DOMContentLoaded', () => {
 export { scan };
 
 // ==========================================
-// PWA Install Prompt Handler
+// PWA Install Prompt Handler (Robust & Fallback)
 // ==========================================
 let deferredPrompt = null;
 
 function showPWAInstallButton() {
     const installBtn = document.getElementById('pwa-install-btn');
     if (!installBtn) return;
+
+    // لو التطبيق متثبت بالفعل، نخفي الزر
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+        installBtn.style.display = 'none';
+        return;
+    }
+
+    // إظهار الزر
     installBtn.style.display = 'inline-flex';
 
     if (!installBtn.dataset.bound) {
         installBtn.dataset.bound = 'true';
         installBtn.addEventListener('click', async () => {
             const promptEvent = deferredPrompt || window._pwaPrompt;
+            
+            // إذا كان المتصفح لا يدعم التثبيت التلقائي (أو تم حظره)
             if (!promptEvent) {
-                console.warn('⚠️ prompt غير متاح');
+                const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+                const isAndroid = /android/i.test(navigator.userAgent);
+                
+                let msg = "لتثبيت التطبيق على جهازك:\n\n";
+                if (isIOS) {
+                    msg += "1. اضغط على زر المشاركة (المربع الذي يعلوه سهم ⬆️) في أسفل الشاشة.\n2. اختر 'Add to Home Screen' (إضافة إلى الشاشة الرئيسية).";
+                } else if (isAndroid) {
+                    msg += "1. اضغط على النقاط الثلاث (⋮) في أعلى المتصفح.\n2. اختر 'Install app' أو 'تثبيت التطبيق' أو 'إضافة إلى الشاشة الرئيسية'.";
+                } else {
+                    msg += "اضغط على أيقونة التثبيت (شاشة بها سهم) في شريط العنوان بجانب رابط الموقع، أو من قائمة المتصفح اختر 'تثبيت التطبيق'.";
+                }
+                alert(msg);
                 return;
             }
+
+            // إذا كان مدعوماً، نظهر نافذة التثبيت الرسمية
             installBtn.style.display = 'none';
             try {
                 promptEvent.prompt();
@@ -199,9 +222,8 @@ function showPWAInstallButton() {
                 console.log('📲 نتيجة التثبيت:', result.outcome);
                 if (result.outcome !== 'accepted') {
                     setTimeout(() => {
-                        const btn = document.getElementById('pwa-install-btn');
-                        if (btn && !window.matchMedia('(display-mode: standalone)').matches) {
-                            btn.style.display = 'inline-flex';
+                        if (!window.matchMedia('(display-mode: standalone)').matches) {
+                            installBtn.style.display = 'inline-flex';
                         }
                     }, 30000);
                 }
@@ -214,6 +236,7 @@ function showPWAInstallButton() {
     }
 }
 
+// 1) استقبال الحدث
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
@@ -222,6 +245,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     showPWAInstallButton();
 });
 
+// 2) الـ inline script في index.html بيبعت الحدث ده كـ fallback
 window.addEventListener('pwaInstallReady', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -229,6 +253,7 @@ window.addEventListener('pwaInstallReady', () => {
     }
 });
 
+// 3) لو الحدث اتطلق قبل ما الملف يتحمّل
 document.addEventListener('DOMContentLoaded', () => {
     if (window._pwaPrompt) {
         deferredPrompt = window._pwaPrompt;
@@ -236,6 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// 4) ✅ إجبار الزر على الظهور بعد 3 ثوانٍ حتى لو المتصفح لم يطلق الحدث
+setTimeout(() => {
+    showPWAInstallButton();
+}, 3000);
+
+// 5) بعد التثبيت
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     window._pwaPrompt = null;
