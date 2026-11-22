@@ -33,9 +33,9 @@ wed:[
 {cls:'m l',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 sun:[
 {cls:'m s',href:'./Unknown.pdf'},
@@ -78,10 +78,9 @@ sun:[
 {cls:'m l',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Precalculus/Lecture/05_A of Diversion'},
@@ -96,10 +95,9 @@ sun:[
 {cls:'m l',href:'./Business/Lecture/04_Globl Context.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
@@ -114,10 +112,9 @@ sun:[
 {cls:'m l',href:'./Business/Lecture/03_Ownership.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
@@ -132,10 +129,9 @@ sun:[
 {cls:'m l',href:'./Business/Lecture/02_Ethics.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
@@ -150,10 +146,9 @@ sun:[
 {cls:'m l',href:'./Business/Lecture/01_Fundamentals.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
@@ -169,10 +164,9 @@ sun:[
 {cls:'m l',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 tue:[
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
+{cls:'m s',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Unknown.pdf'}],
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
