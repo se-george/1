@@ -1,23 +1,23 @@
 // ============================================
-// utils.js - دوال مساعدة عامة (محدّث)
+// utils.js - دوال مساعدة عامة (النسخة النهائية الشاملة)
 // ============================================
 
-import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR } from './config.js';
+import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR, SUBJECT_FOLDERS } from './config.js';
 import { thumbIndex } from './state.js';
 
 // ------------------------------
-// توليد كود HEX فريد بناءً على الجهاز والوقت
+// 1. توليد كود HEX فريد بناءً على الجهاز والوقت
 // ------------------------------
 export function getStaticHexId() {
     let hex = localStorage.getItem('static_hex_id');
     if (!hex) {
         const deviceInfo = [
-            Date.now().toString(),
-            navigator.userAgent,
-            screen.width + 'x' + screen.height,
-            window.devicePixelRatio,
-            navigator.language,
-            Math.random().toString(36).substring(2, 8)
+            Date.now().toString(),                   // التاريخ والوقت
+            navigator.userAgent,                     // المتصفح ونظام التشغيل
+            screen.width + 'x' + screen.height,      // دقة الشاشة
+            window.devicePixelRatio,                 // كثافة البكسل
+            navigator.language,                      // اللغة
+            Math.random().toString(36).substring(2, 8) // عامل عشوائي
         ].join('|');
 
         let hash = 5381;
@@ -32,7 +32,7 @@ export function getStaticHexId() {
 }
 
 // ------------------------------
-// تحويل النصوص والترجمة
+// 2. تحويل النصوص والترجمة
 // ------------------------------
 export function normalizeArabic(text) {
     if (!text) return '';
@@ -64,7 +64,7 @@ export function autoTranslate(filename) {
 }
 
 // ------------------------------
-// Debounce
+// 3. Debounce
 // ------------------------------
 export function debounce(func, delay) {
     let timeoutId;
@@ -75,7 +75,7 @@ export function debounce(func, delay) {
 }
 
 // ------------------------------
-// التعامل مع SVG (الإحداثيات)
+// 4. التعامل مع SVG (الإحداثيات)
 // ------------------------------
 export function getCumulativeTranslate(element) {
     let x = 0, y = 0, current = element;
@@ -113,13 +113,15 @@ export function getGroupImage(element) {
 }
 
 // ------------------------------
-// أسماء المستخدمين والأجهزة
+// 5. أسماء المستخدمين والأجهزة
 // ------------------------------
 export function getDisplayName() {
     const realName = localStorage.getItem('user_real_name');
+    // 1. الأولوية للاسم الديناميكي
     if (realName && realName.trim()) {
         return realName.trim();
     }
+    // 2. في حال عدم وجوده، نرجع كود HEX الثابت
     return getStaticHexId();
 }
 
@@ -136,20 +138,20 @@ export function getDeviceId() {
     }
     const stored = localStorage.getItem('device_fingerprint');
     if (stored) return stored;
+    // المعرف الافتراضي هو كود HEX
     return getStaticHexId();
 }
 
 // ------------------------------
-// التحقق من مجلد المادة
+// 6. التحقق من مجلد المادة
 // ------------------------------
-import { SUBJECT_FOLDERS } from './config.js';
 export function isSubjectFolder(folderName) {
     const lowerName = folderName.toLowerCase();
     return SUBJECT_FOLDERS.some(subject => lowerName.includes(subject));
 }
 
 // ------------------------------
-// لف النص داخل SVG
+// 7. لف النص داخل SVG
 // ------------------------------
 export function wrapText(el, maxW) {
     const txt = el.getAttribute('data-original-text');
@@ -183,15 +185,53 @@ export function wrapText(el, maxW) {
 }
 
 // ------------------------------
-// إدارة أخطاء الملفات (shownErrors)
+// 8. إدارة أخطاء الملفات (shownErrors)
 // ------------------------------
 const _shownErrors = new Set();
 export const addShownError = (url) => _shownErrors.add(url);
 export const hasShownError = (url) => _shownErrors.has(url);
 
 // ------------------------------
-// إعادة تعيين مستوى التكبير (Zoom) لـ 100% حقيقي للمتصفح
+// 9. التحكم في الزوم (Zoom)
 // ------------------------------
+let currentSvgZoom = 1;
+
+// تفعيل الزوم بعجلة الماوس (بكرة الماوس)
+export function setupMouseWheelZoom() {
+    const container = document.getElementById('scroll-container');
+    const svg = document.getElementById('main-svg');
+    if (!container || !svg) return;
+
+    container.addEventListener('wheel', (e) => {
+        e.preventDefault(); 
+        
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        currentSvgZoom = Math.max(0.5, Math.min(4, currentSvgZoom + delta));
+
+        const baseHeight = 2454;
+        svg.style.height = `${baseHeight * currentSvgZoom}px`;
+        svg.style.transition = 'height 0.1s ease-out';
+    }, { passive: false });
+}
+
+// تصفير الزوم وإرجاع التمرير للبداية
+export function resetSvgZoom() {
+    currentSvgZoom = 1;
+    const svg = document.getElementById('main-svg');
+    const scrollContainer = document.getElementById('scroll-container');
+    
+    if (svg) {
+        svg.style.transition = 'none';
+        svg.style.height = ''; 
+        
+        // إعادة التمرير إلى بداية الخريطة لمنع الشاشة من "الضياع"
+        if (scrollContainer) {
+            scrollContainer.scrollLeft = 0;
+        }
+    }
+}
+
+// تصفير زوم المتصفح (للموبايل - Pinch Zoom)
 export function resetBrowserZoom() {
     const viewport = document.querySelector('meta[name=viewport]');
     if (!viewport) return;
@@ -204,44 +244,7 @@ export function resetBrowserZoom() {
 }
 
 // ------------------------------
-// التحكم في زوم الخريطة (SVG) بواسطة عجلة الماوس
-// ------------------------------
-let currentSvgZoom = 1;
-
-export function setupMouseWheelZoom() {
-    const container = document.getElementById('scroll-container');
-    const svg = document.getElementById('main-svg');
-    if (!container || !svg) return;
-
-    // منع التمرير الافتراضي (لأننا سنستخدم العجلة للزوم)
-    container.addEventListener('wheel', (e) => {
-        e.preventDefault(); 
-        
-        // تحديد اتجاه الزوم (فوق = تكبير، تحت = تصغير)
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        currentSvgZoom = Math.max(0.5, Math.min(4, currentSvgZoom + delta));
-
-        // تغيير الارتفاع بناءً على مستوى الزوم (الارتفاع الأصلي في الـ viewBox هو 2454)
-        const baseHeight = 2454;
-        svg.style.height = `${baseHeight * currentSvgZoom}px`;
-        
-        // إضافة تأثير انتقالي سلس
-        svg.style.transition = 'height 0.1s ease-out';
-        
-    }, { passive: false });
-}
-
-export function resetSvgZoom() {
-    currentSvgZoom = 1;
-    const svg = document.getElementById('main-svg');
-    if (svg) {
-        svg.style.height = ''; // إزالة الـ inline style ليعود للحجم الافتراضي من CSS
-        svg.style.transition = 'none';
-    }
-}
-
-// ------------------------------
-// صور مصغّرة (thumbnails)
+// 10. صور مصغّرة (thumbnails)
 // ------------------------------
 export function getThumbUrl(path) {
     if (!path) return null;
@@ -253,7 +256,7 @@ export function getThumbUrl(path) {
 }
 
 // ------------------------------
-// مسح الكاش — من خلال الـ Service Worker فقط
+// 11. مسح الكاش — من خلال الـ Service Worker فقط
 // ------------------------------
 export async function clearAppCaches(timeoutMs = 4000) {
     if (!('serviceWorker' in navigator)) return false;
