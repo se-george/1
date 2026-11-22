@@ -1,0 +1,32 @@
+[
+  {
+    "name": "أحمد",
+    "score": 154,
+    "device_id": "A1B2C3D4",
+    "date": "2024-05-20"
+  },
+  {
+    "name": "سارة",
+    "score": 120,
+    "device_id": "E5F6G7H8",
+    "date": "2024-05-21"
+  },
+  {
+    "name": "محمد",
+    "score": 98,
+    "device_id": "I9J0K1L2",
+    "date": "2024-05-22"
+  },
+  {
+    "name": "A4B8C2D1",
+    "score": 75,
+    "device_id": "A4B8C2D1",
+    "date": "2024-05-22"
+  },
+  {
+    "name": "علي",
+    "score": 60,
+    "device_id": "M3N4O5P6",
+    "date": "2024-05-23"
+  }
+]
