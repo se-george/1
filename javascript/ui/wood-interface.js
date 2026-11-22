@@ -42,7 +42,7 @@ const isImageFile = (path) => {
 
 // ---------- ملفات مستثناة (مسار كامل أو اسم ملف بالأحرف الصغيرة) ----------
 const EXCLUDED_FILES = [
-    '###########.pdf'
+    '×××××××××××.pdf'
 ];
 
 const isExcludedFile = (path) => {
