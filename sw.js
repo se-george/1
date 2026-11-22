@@ -1,10 +1,10 @@
 // ============================================================
 // sw.js - Service Worker
 // ============================================================
-const CACHE_PREFIX = 'semester-1-v8';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v20';   
+const CACHE_PREFIX = 'semester-1-v0';
+const CACHE_NAME = CACHE_PREFIX + 'cache-v0';   
 const CONTENT_CACHE = CACHE_PREFIX + 'content';  
-const LEGACY_CACHES = ['semester-3-cache-v17'];   
+const LEGACY_CACHES = ['semester-1-cache-v0'];   
 
 const RAW_HOST = 'raw.githubusercontent.com';    
 const CDN_HOST = 'cdnjs.cloudflare.com';         
@@ -16,6 +16,7 @@ const MAX_CONTENT_ENTRIES = 150;
 const MAX_CONTENT_BYTES = 80 * 1024 * 1024;      
 const TRIM_EVERY = 10;                           
 
+// ✅ تمت إزالة ملف leaderboard.json لأننا دمجناه في الكود
 const urlsToCache = [
    './',
    './index.html',
@@ -41,7 +42,6 @@ const urlsToCache = [
    './javascript/features/preload-game.js',
    './javascript/features/preload.js',
    './javascript/features/svg-processor.js',
-   './data/leaderboard.json',
    './image/0.webp',
    './image/wood.webp',
 ];
@@ -90,9 +90,6 @@ const OFFLINE_HTML = `<!DOCTYPE html>
                         </body>
                         </html>`;
 
-// ------------------------------------------------------------
-// أدوات مساعدة
-// ------------------------------------------------------------
 const isOurCache = (key) => key.startsWith(CACHE_PREFIX) || LEGACY_CACHES.includes(key);
 
 function keepAlive(event, promise) {
@@ -133,9 +130,6 @@ function offlineResponse(request) {
     return new Response('Offline', { status: 503 });
 }
 
-// ------------------------------------------------------------
-// كاش المحتوى الخارجي
-// ------------------------------------------------------------
 let putsSinceTrim = 0;
 
 async function trimContentCache() {
@@ -168,9 +162,6 @@ async function saveContent(request, response) {
     } catch (e) { /* مساحة ممتلئة */ }
 }
 
-// ------------------------------------------------------------
-// تحميل الواجهة مسبقاً
-// ------------------------------------------------------------
 let precacheRun = null;
 
 function precacheAll() {
@@ -186,10 +177,7 @@ function precacheAll() {
             const fileName = url.split('/').pop() || 'index.html';
             try {
                 if (!(await cache.match(url))) {
-                    // ✅ إرسال إشارة البدء قبل التحميل
                     broadcast({ type: 'PRECACHE_START', file: fileName });
-                    
-                    // التحميل
                     await cache.add(new Request(url, { cache: 'no-cache' }));
                 }
             } catch (err) {
@@ -197,8 +185,6 @@ function precacheAll() {
                 console.warn(`⚠️ فشل تخزين: ${url}`);
             }
             done++;
-            
-            // ✅ إرسال إشارة الاكتمال
             broadcast({ type: 'PRECACHE_PROGRESS', done, total, file: fileName });
         }));
 
@@ -222,9 +208,6 @@ async function warmUrls(urls) {
     }));
 }
 
-// ------------------------------------------------------------
-// دورة حياة الـ SW
-// ------------------------------------------------------------
 self.addEventListener('install', event => {
     console.log('🔧 Service Worker: تثبيت الإصدار', CACHE_NAME);
     event.waitUntil(
@@ -251,9 +234,6 @@ self.addEventListener('activate', event => {
     })());
 });
 
-// ------------------------------------------------------------
-// استراتيجيات الطلبات
-// ------------------------------------------------------------
 async function staleWhileRevalidate(event) {
     const request = event.request;
     const cached = await caches.match(request);
@@ -333,6 +313,20 @@ self.addEventListener('fetch', event => {
     const url = new URL(request.url);
     if (url.pathname.endsWith('/sw.js')) return;
 
+    // ✅ استراتيجية Network First لملفات الـ HTML لضمان تحديثها دائماً
+    if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {
+        event.respondWith(
+            fetch(request)
+                .then(response => {
+                    const copy = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                    return response;
+                })
+                .catch(() => caches.match(request))
+        );
+        return;
+    }
+
     if (url.origin === self.location.origin) {
         event.respondWith(staleWhileRevalidate(event));
     } else if (url.hostname === API_HOST) {
@@ -342,9 +336,6 @@ self.addEventListener('fetch', event => {
     }
 });
 
-// ------------------------------------------------------------
-// الرسائل من الصفحة
-// ------------------------------------------------------------
 self.addEventListener('message', event => {
     const data = event.data || {};
 
