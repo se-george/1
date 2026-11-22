@@ -10,9 +10,9 @@ export const LEADERBOARD_CACHE_KEY = 'leaderboard_top5_cache';
 export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   // 5 دقائق
 export const MAX_CLOUD_SCORES      = 5;
 
-// ══════════════════════════════
+// ════════════════════════════
 // 🏆 قائمة المتصدرين (قم بتعديل هذه القائمة يدوياً كل فترة)
-// ══════════════════════════════
+// ════════════════════════════
 const MANUAL_LEADERBOARD = [
     { name: "جورج رضا", score: 50 },
     { name: "محى", score: 0 },
