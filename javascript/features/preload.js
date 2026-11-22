@@ -1,21 +1,15 @@
 // ============================================
-// preload.js
+// preload.js - شاشة التحميل المسبق (عرض التقدّم فقط)
 // ============================================
 
 import { TREE_API_URL } from '../core/config.js';
 
-// لو الـ SW ماردّش خالص (متصفح/وضع مش بيدعمه) منعلّقش المستخدم على الشاشة
 const STALL_TIMEOUT_MS = 20000;
 
-/**
- * بدء شاشة التحميل المسبق
- * @param {Function} onComplete - دالة تُستدعى بعد اكتمال التحميل (اختياري)
- */
 export function initPreload(onComplete) {
     const preloadScreen = document.getElementById('preload-screen');
     if (!preloadScreen) return;
 
-    // إظهار الشاشة وإخفاء المحتوى الرئيسي
     preloadScreen.classList.remove('hidden');
     const mainContent = [
         document.getElementById('group-selection-screen'),
@@ -50,7 +44,6 @@ export function initPreload(onComplete) {
         if (fileStatus) fileStatus.textContent = message;
         if (continueBtn) continueBtn.style.display = 'block';
 
-        // استدعاء callback إذا وُجد
         if (typeof onComplete === 'function') {
             onComplete();
         }
@@ -69,11 +62,19 @@ export function initPreload(onComplete) {
         const msg = event.data;
         if (!msg || finished) return;
 
-        if (msg.type === 'PRECACHE_PROGRESS') {
+        // ✅ استماع لحدث بدء التحميل
+        if (msg.type === 'PRECACHE_START') {
+            armStallTimer();
+            if (fileStatus) fileStatus.textContent = `⏳ جاري تحميل: ${msg.file}`;
+        } 
+        // استماع لحدث اكتمال التحميل
+        else if (msg.type === 'PRECACHE_PROGRESS') {
             armStallTimer();
             updateProgress(msg.done, msg.total);
             if (fileStatus) fileStatus.textContent = `✔ ${msg.file}`;
-        } else if (msg.type === 'PRECACHE_DONE') {
+        } 
+        // استماع لحدث انتهاء الكل
+        else if (msg.type === 'PRECACHE_DONE') {
             finish('🎉 اكتمل التحميل!');
         }
     }
@@ -83,13 +84,10 @@ export function initPreload(onComplete) {
         if (navigator.serviceWorker.startMessages) navigator.serviceWorker.startMessages();
         armStallTimer();
 
-        // أول زيارة: الـ SW بيحمّل وهو بيتثبّت. لو كان شغّال قبل كده (مثلاً لعبة "شاشة التحميل" من الإعدادات)
-        // بنطلب منه يتأكد من الملفات (اللي موجود بيعدّي فوراً). وبنطلب منه يسخّن شجرة الملفات —
-        // الرابط من config.js (مصدره الوحيد) والتخزين بيتم جوه الـ SW.
         navigator.serviceWorker.ready
             .then(registration => {
                 if (registration.active) {
-                    registration.active.postMessage({ action: 'precache', warm: [TREE_API_URL] });
+                    registration.postMessage({ action: 'precache', warm: [TREE_API_URL] });
                 }
             })
             .catch(() => { /* الـ stall timer هيكمّل */ });
@@ -97,7 +95,6 @@ export function initPreload(onComplete) {
         finish('✔ جاهز');
     }
 
-    // عند الضغط على متابعة
     if (continueBtn) {
         continueBtn.addEventListener('click', () => {
             console.log('✅ حفظ حالة preload_done');
@@ -106,12 +103,10 @@ export function initPreload(onComplete) {
 
             preloadScreen.classList.add('hidden');
 
-            // إظهار المحتوى الرئيسي
             mainContent.forEach(el => {
                 if (el) el.style.display = '';
             });
 
-            // إعادة تحميل الصفحة لبدء التشغيل الطبيعي
             window.location.reload();
         });
     }
