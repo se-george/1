@@ -1,18 +1,21 @@
-// ================================================
+// ============================================================
 // sw.js - Service Worker
-// ================================================
+// ============================================================
 const CACHE_PREFIX = 'semester-1-';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v8';
-const CONTENT_CACHE = CACHE_PREFIX + 'content';
-const LEGACY_CACHES = ['semester-1-cache-v8'];
-const RAW_HOST = 'raw.githubusercontent.com';
-const CDN_HOST = 'cdnjs.cloudflare.com';
-const API_HOST = 'api.github.com';
+const CACHE_NAME = CACHE_PREFIX + 'cache-v5';   
+const CONTENT_CACHE = CACHE_PREFIX + 'content';  
+const LEGACY_CACHES = ['semester-3-cache-v2'];   
+
+const RAW_HOST = 'raw.githubusercontent.com';    
+const CDN_HOST = 'cdnjs.cloudflare.com';         
+const API_HOST = 'api.github.com';               
 const WARM_HOSTS = [RAW_HOST, CDN_HOST, API_HOST];
-const NETWORK_TIMEOUT_MS = 6000;
-const MAX_CONTENT_ENTRIES = 150;
-const MAX_CONTENT_BYTES = 80 * 1024 * 1024;
-const TRIM_EVERY = 10;
+
+const NETWORK_TIMEOUT_MS = 6000;                 
+const MAX_CONTENT_ENTRIES = 150;                 
+const MAX_CONTENT_BYTES = 80 * 1024 * 1024;      
+const TRIM_EVERY = 10;                           
+
 const urlsToCache = [
    './',
    './index.html',
@@ -91,13 +94,11 @@ const OFFLINE_HTML = `<!DOCTYPE html>
 // ------------------------------------------------------------
 const isOurCache = (key) => key.startsWith(CACHE_PREFIX) || LEGACY_CACHES.includes(key);
 
-// بنكمّل شغل في الخلفية بأمان (لو الحدث خلص بنتجاهل الخطأ والشغل بيكمّل برضه)
 function keepAlive(event, promise) {
     try { event.waitUntil(promise); } catch (e) { /* الحدث خلص */ }
     return promise;
 }
 
-// نبعت رسالة لكل الصفحات المفتوحة (حتى اللي لسه الـ SW مسيطر عليها مش مسيطر — أول زيارة)
 async function broadcast(message) {
     try {
         const windows = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
@@ -105,7 +106,6 @@ async function broadcast(message) {
     } catch (e) { /* مفيش صفحات مفتوحة */ }
 }
 
-// تخزين الواجهة (same-origin): ردود سليمة بس
 function canCacheShell(response) {
     return !!response && (response.type === 'basic' || response.type === 'cors') && response.ok;
 }
@@ -113,7 +113,7 @@ function canCacheShell(response) {
 function shouldCacheShell(url) {
     try {
         const pathname = new URL(url).pathname;
-        if (pathname.includes('sw.js')) return false;              // الـ SW نفسه لا يُخزَّن
+        if (pathname.includes('sw.js')) return false;
         if (pathname.includes('/javascript/')) return true;
         if (pathname.includes('/image/')) return true;
         return /\.(html|css|js|webp|png|jpg|jpeg|svg|pdf|json)$/.test(pathname);
@@ -133,13 +133,13 @@ function offlineResponse(request) {
 }
 
 // ------------------------------------------------------------
-// كاش المحتوى الخارجي: حد أقصى للعدد والحجم (الأقدم يتشال الأول)
+// كاش المحتوى الخارجي
 // ------------------------------------------------------------
 let putsSinceTrim = 0;
 
 async function trimContentCache() {
     const cache = await caches.open(CONTENT_CACHE);
-    const keys = await cache.keys();                       // بترتيب الإضافة (الأقدم الأول)
+    const keys = await cache.keys();
     if (keys.length === 0) return;
 
     const sizes = await Promise.all(keys.map(async request => {
@@ -164,16 +164,16 @@ async function saveContent(request, response) {
             putsSinceTrim = 0;
             await trimContentCache();
         }
-    } catch (e) { /* مساحة ممتلئة أو رد مش قابل للتخزين */ }
+    } catch (e) { /* مساحة ممتلئة */ }
 }
 
 // ------------------------------------------------------------
-// تحميل الواجهة مسبقاً (بالتوازي) + إرسال التقدّم للصفحة
+// تحميل الواجهة مسبقاً
 // ------------------------------------------------------------
 let precacheRun = null;
 
 function precacheAll() {
-    if (precacheRun) return precacheRun;                   // تشغيل واحد في نفس الوقت
+    if (precacheRun) return precacheRun;
 
     precacheRun = (async () => {
         const cache = await caches.open(CACHE_NAME);
@@ -182,10 +182,13 @@ function precacheAll() {
         let done = 0;
 
         await Promise.all(urlsToCache.map(async url => {
+            const fileName = url.split('/').pop() || 'index.html';
             try {
                 if (!(await cache.match(url))) {
-                    // no-cache: بيسأل السيرفر (304 لو مفيش تغيير) بدل ما ياخد نسخة قديمة من HTTP cache
-                    // (GitHub Pages بيبعت max-age=600 → ممكن نخزّن نسخة عمرها 10 دقايق).
+                    // ✅ إرسال إشارة البدء قبل التحميل
+                    broadcast({ type: 'PRECACHE_START', file: fileName });
+                    
+                    // التحميل
                     await cache.add(new Request(url, { cache: 'no-cache' }));
                 }
             } catch (err) {
@@ -193,7 +196,9 @@ function precacheAll() {
                 console.warn(`⚠️ فشل تخزين: ${url}`);
             }
             done++;
-            broadcast({ type: 'PRECACHE_PROGRESS', done, total, file: url.split('/').pop() || 'index.html' });
+            
+            // ✅ إرسال إشارة الاكتمال
+            broadcast({ type: 'PRECACHE_PROGRESS', done, total, file: fileName });
         }));
 
         await broadcast({ type: 'PRECACHE_DONE', total, failed });
@@ -202,13 +207,12 @@ function precacheAll() {
     return precacheRun;
 }
 
-// روابط خارجية الصفحة تطلب تسخينها (مثلاً شجرة الملفات) — الرابط معرّف في config.js مش هنا
 async function warmUrls(urls) {
     if (!Array.isArray(urls)) return;
     await Promise.all(urls.map(async raw => {
         try {
             const url = new URL(raw);
-            if (url.protocol !== 'https:' || !WARM_HOSTS.includes(url.hostname)) return;   // مصادر معروفة بس
+            if (url.protocol !== 'https:' || !WARM_HOSTS.includes(url.hostname)) return;
             const response = await fetch(new Request(url.href, { mode: 'cors', credentials: 'omit', cache: 'no-store' }));
             if (response.ok) await saveContent(url.href, response);
         } catch (e) {
@@ -234,7 +238,6 @@ self.addEventListener('activate', event => {
     console.log('🚀 Service Worker: تفعيل الإصدار', CACHE_NAME);
     event.waitUntil((async () => {
         const keys = await caches.keys();
-        // بنمسح كاشاتنا القديمة بس (نفس الـ prefix) — مش أي كاش على نفس الـ origin
         await Promise.all(keys
             .filter(key => isOurCache(key) && key !== CACHE_NAME && key !== CONTENT_CACHE)
             .map(key => {
@@ -250,8 +253,6 @@ self.addEventListener('activate', event => {
 // ------------------------------------------------------------
 // استراتيجيات الطلبات
 // ------------------------------------------------------------
-
-// الواجهة (same-origin): من الكاش فوراً + تحديث في الخلفية (stale-while-revalidate)
 async function staleWhileRevalidate(event) {
     const request = event.request;
     const cached = await caches.match(request);
@@ -271,16 +272,12 @@ async function staleWhileRevalidate(event) {
     return update.catch(() => offlineResponse(request));
 }
 
-// المحتوى الخارجي (raw / cdnjs): من الكاش لو موجود، وإلا من الشبكة ونخزّنه — من غير تحديث في الخلفية
-// (الـ thumbnails رابطها فيه ?v=sha فلو الصورة اتغيّرت بياخد رابط جديد لوحده)
 async function cacheFirst(event) {
     const request = event.request;
     const cached = await caches.match(request);
     if (cached) return cached;
 
     try {
-        // طلبات no-cors (صور/سكريبتات) ردّها opaque: مش بنعرف حالته وبيتحسب ~7MB من مساحة التخزين.
-        // فبنعيدها بـ CORS (السيرفرين بيدعموه) عشان نتأكد إنها 200 قبل ما نخزّنها.
         const upgraded = request.mode === 'no-cors'
             ? new Request(request.url, { mode: 'cors', credentials: 'omit' })
             : request;
@@ -292,14 +289,12 @@ async function cacheFirst(event) {
         return response;
     } catch (err) {
         if (request.mode === 'no-cors') {
-            try { return await fetch(request); } catch (e) { /* أوفلاين */ }   // السيرفر مبيدعمش CORS: من غير تخزين
+            try { return await fetch(request); } catch (e) { /* أوفلاين */ }
         }
         return offlineResponse(request);
     }
 }
 
-// شجرة الملفات (api.github.com): الشبكة أولاً (عشان تبقى محدّثة) ولو بطيئة/محجوبة (403) أو أوفلاين
-// نرجع لآخر نسخة سليمة — ده بديل نسخة localStorage القديمة (الكاش بقى في مكان واحد).
 async function networkFirst(event) {
     const request = event.request;
     const attempt = fetch(request).then(response => ({ response }), () => ({ response: null }));
@@ -313,14 +308,12 @@ async function networkFirst(event) {
 
     const cached = await caches.match(request);
     if (cached) {
-        // لو الشبكة اتأخرت بس لسه ممكن توصل: نحدّث النسخة المحفوظة لما تخلص
         if (first.timedOut) {
             keepAlive(event, attempt.then(({ response }) => (response && response.ok) ? saveContent(request, response.clone()) : null));
         }
         return cached;
     }
 
-    // مفيش نسخة محفوظة: نستنى الشبكة للآخر
     const settled = first.timedOut ? await attempt : first;
     if (settled.response) {
         if (settled.response.ok) keepAlive(event, saveContent(request, settled.response.clone()));
@@ -332,12 +325,12 @@ async function networkFirst(event) {
 self.addEventListener('fetch', event => {
     const request = event.request;
 
-    if (request.method !== 'GET') return;                              // POST (Formspree...) وغيره: يعدّي
-    if (request.headers.has('range')) return;                          // طلبات Range (صوت/فيديو/PDF مجزّأ): المتصفح أدرى
+    if (request.method !== 'GET') return;
+    if (request.headers.has('range')) return;
     if (request.cache === 'only-if-cached' && request.mode !== 'same-origin') return;
 
     const url = new URL(request.url);
-    if (url.pathname.endsWith('/sw.js')) return;                       // الـ SW نفسه
+    if (url.pathname.endsWith('/sw.js')) return;
 
     if (url.origin === self.location.origin) {
         event.respondWith(staleWhileRevalidate(event));
@@ -346,7 +339,6 @@ self.addEventListener('fetch', event => {
     } else if (url.hostname === RAW_HOST || url.hostname === CDN_HOST) {
         event.respondWith(cacheFirst(event));
     }
-    // أي مصدر تاني: من غير تدخّل
 });
 
 // ------------------------------------------------------------
@@ -360,8 +352,6 @@ self.addEventListener('message', event => {
         self.skipWaiting();
     }
 
-    // شاشة الـ preload: نتأكد إن كل ملفات urlsToCache متخزّنة (والتقدّم بيرجع كرسائل PRECACHE_*)
-    // data.warm = روابط خارجية عايزينها في الكاش (الصفحة هي اللي بتحدّدها من config.js)
     if (data.action === 'precache') {
         event.waitUntil(Promise.all([precacheAll(), warmUrls(data.warm)]));
     }
@@ -369,12 +359,12 @@ self.addEventListener('message', event => {
     if (data.action === 'clearCache') {
         console.log('🗑️ طلب مسح الكاش');
         event.waitUntil((async () => {
-            if (precacheRun) await precacheRun.catch(() => {});     // ما نمسحش وسط تحميل شغّال
+            if (precacheRun) await precacheRun.catch(() => {});
             const keys = await caches.keys();
             await Promise.all(keys.filter(isOurCache).map(key => caches.delete(key)));
             console.log('✅ تم مسح كاش التطبيق');
             await broadcast({ type: 'CACHE_CLEARED' });
-            await precacheAll();                                    // نرجّع الواجهة جاهزة أوفلاين بعد المسح
+            await precacheAll();
         })());
     }
 });
