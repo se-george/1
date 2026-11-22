@@ -165,17 +165,11 @@ export async function loadGroupSVG(groupLetter) {
     }
 
     try {
-        groupContainer.innerHTML = generateGroupSVG(groupLetter, group);
-        console.log(`✅ توليد ${groupLetter}: ${groupContainer.children.length} عنصر`);
-
         const injectedImages = groupContainer.querySelectorAll('image[data-src]');
-        imageUrlsToLoad = ['image/wood.webp', 'image/Upper_wood.webp'];
+        imageUrlsToLoad = ['image/wood.webp'];
         injectedImages.forEach(img => {
             const src = img.getAttribute('data-src');
-            if (src && !imageUrlsToLoad.includes(src)) {
-                const isGroupImage = src.includes(`image/${groupLetter}/`);
-                if (isGroupImage) imageUrlsToLoad.push(src);
-            }
+            if (src && !imageUrlsToLoad.includes(src)) imageUrlsToLoad.push(src);
         });
 
         loadingProgress.totalSteps = 1 + imageUrlsToLoad.length;
