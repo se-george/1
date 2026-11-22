@@ -1,5 +1,5 @@
 // ============================================
-// utils.js - دوال مساعدة عامة (محدّث بالكامل)
+// utils.js - دوال مساعدة عامة (محدّث)
 // ============================================
 
 import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR } from './config.js';
@@ -11,23 +11,20 @@ import { thumbIndex } from './state.js';
 export function getStaticHexId() {
     let hex = localStorage.getItem('static_hex_id');
     if (!hex) {
-        // 1. جمع بصمة الجهاز والوقت
         const deviceInfo = [
-            Date.now().toString(),                   // التاريخ والساعة بالملي ثانية
-            navigator.userAgent,                     // نوع المتصفح ونظام التشغيل
-            screen.width + 'x' + screen.height,      // دقة الشاشة
-            window.devicePixelRatio,                 // كثافة البكسل
-            navigator.language,                      // لغة الجهاز
-            Math.random().toString(36).substring(2, 8) // عامل عشوائي إضافي
+            Date.now().toString(),
+            navigator.userAgent,
+            screen.width + 'x' + screen.height,
+            window.devicePixelRatio,
+            navigator.language,
+            Math.random().toString(36).substring(2, 8)
         ].join('|');
 
-        // 2. تحويل النص إلى كود HEX (خوارزمية djb2)
         let hash = 5381;
         for (let i = 0; i < deviceInfo.length; i++) {
             hash = ((hash << 5) + hash) + deviceInfo.charCodeAt(i);
         }
 
-        // 3. تحويل الرقم لـ HEX وتكبيره لـ 8 خانات
         hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
         localStorage.setItem('static_hex_id', hex);
     }
@@ -120,11 +117,9 @@ export function getGroupImage(element) {
 // ------------------------------
 export function getDisplayName() {
     const realName = localStorage.getItem('user_real_name');
-    // 1. الأولوية للاسم الديناميكي
     if (realName && realName.trim()) {
         return realName.trim();
     }
-    // 2. في حال عدم وجوده، نرجع كود HEX الثابت
     return getStaticHexId();
 }
 
@@ -195,7 +190,7 @@ export const addShownError = (url) => _shownErrors.add(url);
 export const hasShownError = (url) => _shownErrors.has(url);
 
 // ------------------------------
-// إعادة تعيين مستوى التكبير (Zoom) لـ 100% حقيقي
+// إعادة تعيين مستوى التكبير (Zoom) لـ 100% حقيقي للمتصفح
 // ------------------------------
 export function resetBrowserZoom() {
     const viewport = document.querySelector('meta[name=viewport]');
@@ -206,6 +201,43 @@ export function resetBrowserZoom() {
     requestAnimationFrame(() => {
         viewport.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
     });
+}
+
+// ------------------------------
+// التحكم في زوم الخريطة (SVG) بواسطة عجلة الماوس
+// ------------------------------
+let currentSvgZoom = 1;
+
+export function setupMouseWheelZoom() {
+    const container = document.getElementById('scroll-container');
+    const svg = document.getElementById('main-svg');
+    if (!container || !svg) return;
+
+    // منع التمرير الافتراضي (لأننا سنستخدم العجلة للزوم)
+    container.addEventListener('wheel', (e) => {
+        e.preventDefault(); 
+        
+        // تحديد اتجاه الزوم (فوق = تكبير، تحت = تصغير)
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        currentSvgZoom = Math.max(0.5, Math.min(4, currentSvgZoom + delta));
+
+        // تغيير الارتفاع بناءً على مستوى الزوم (الارتفاع الأصلي في الـ viewBox هو 2454)
+        const baseHeight = 2454;
+        svg.style.height = `${baseHeight * currentSvgZoom}px`;
+        
+        // إضافة تأثير انتقالي سلس
+        svg.style.transition = 'height 0.1s ease-out';
+        
+    }, { passive: false });
+}
+
+export function resetSvgZoom() {
+    currentSvgZoom = 1;
+    const svg = document.getElementById('main-svg');
+    if (svg) {
+        svg.style.height = ''; // إزالة الـ inline style ليعود للحجم الافتراضي من CSS
+        svg.style.transition = 'none';
+    }
 }
 
 // ------------------------------
