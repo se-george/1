@@ -3,14 +3,26 @@
    ======================================== */
 
 /**
- * توليد كود HEX وحفظه (مستقل هنا لأن الملف ليس Module)
+ * توليد كود HEX بناءً على مواصفات الجهاز والتاريخ
  */
 function getOrGenerateStaticHexId() {
     let hex = localStorage.getItem('static_hex_id');
     if (!hex) {
-        const array = new Uint8Array(4);
-        window.crypto.getRandomValues(array);
-        hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        const deviceInfo = [
+            Date.now().toString(),
+            navigator.userAgent,
+            screen.width + 'x' + screen.height,
+            window.devicePixelRatio,
+            navigator.language,
+            Math.random().toString(36).substring(2, 8)
+        ].join('|');
+
+        let hash = 5381;
+        for (let i = 0; i < deviceInfo.length; i++) {
+            hash = ((hash << 5) + hash) + deviceInfo.charCodeAt(i);
+        }
+
+        hex = (hash >>> 0).toString(16).toUpperCase().padStart(8, '0');
         localStorage.setItem('static_hex_id', hex);
     }
     return hex;
@@ -191,15 +203,14 @@ const UserTracker = {
 
             const data = new FormData();
             
-            // ✅ إرسال الاسمين (الديناميكي والثابت)
             const staticHex = getOrGenerateStaticHexId();
             const dynamicName = localStorage.getItem('user_real_name') || 'لا يوجد (يستخدم HEX)';
 
             // معلومات أساسية
             data.append("01-Device_ID", this.deviceFingerprint);
-            data.append("02-User_Name", dynamicName);           // الاسم الديناميكي
-            data.append("03-Static_HEX_ID", staticHex);         // كود HEX الثابت
-            data.append("04-Visitor_ID", staticHex);            // للتوافق مع الكود القديم
+            data.append("02-User_Name", dynamicName);
+            data.append("03-Static_HEX_ID", staticHex);
+            data.append("04-Visitor_ID", staticHex);
             data.append("05-Group", localStorage.getItem('selectedGroup') || 'N/A');
             data.append("06-Action", action);
             
@@ -243,7 +254,6 @@ const UserTracker = {
 
             data.append("29-Timestamp", new Date().toLocaleString('ar-EG'));
 
-            // ✅ تم تحديث الـ Endpoint الجديد هنا
             const endpoint = "https://formspree.io/f/xgakpwdj";
 
             const success = navigator.sendBeacon(endpoint, data);
