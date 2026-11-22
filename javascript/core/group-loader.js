@@ -17,7 +17,7 @@ let loadingProgress = {
 // ---------- شجرة الملفات ----------
 // ✅ كاش الشجرة في مكان واحد بس: الـ Service Worker (sw.js) — بيجيب الأحدث من الشبكة، ولو GitHub
 //    بطيء/محجوب (403) أو أوفلاين بيرجّع آخر نسخة سليمة. مفيش نسخة localStorage تانية.
-const TREE_TIMEOUT_MS = 10000;
+const TREE_TIMEOUT_MS = 100;
 let treePromise = null;
 
 // نسخة localStorage القديمة (كانت توصل 4MB) — بنمسحها لو لسه موجودة
