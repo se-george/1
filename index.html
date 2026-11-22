@@ -31,8 +31,8 @@
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 
   <!-- Preload Critical Assets with crossorigin -->
-  <link rel="preload" href="style.css?v=1.0.1" as="style">
-  <link rel="preload" href="script.js?v=1.0.1" as="script" crossorigin="anonymous">
+  <link rel="preload" href="style.css" as="style">
+  <link rel="preload" href="script.js" as="script" crossorigin="anonymous">
   <link rel="preload" href="javascript/core/config.js" as="script" crossorigin="anonymous">
 
   <!-- Modulepreload with crossorigin -->
@@ -78,7 +78,7 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=1.0.1">
+  <link rel="stylesheet" href="style.css">
 
   <style>
     /* ===== iOS Install Banner ===== */
@@ -374,18 +374,22 @@
   </svg>
 </div>
 
-<!-- ✅ السكريبت الرئيسي – نقطة الدخول الوحيدة (تم إضافة رقم إصدار للكاش) -->
-<script type="module" src="script.js?v=1.0.1"></script>
+<!-- ✅ السكريبت الرئيسي – نقطة الدخول الوحيدة -->
+<script type="module" src="script.js"></script>
 <script src="tracker.js"></script>
 
-<!-- ✅ Service Worker -->
+<!-- ✅ Service Worker Registration (Smart Update) -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    // ✅ إضافة updateViaCache: 'none' لإجبار المتصفح على جلب أحدث نسخة من sw.js
+    // نطلب من المتصفح تجاهل كاش الـ HTTP لملف sw.js
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(registration => {
         console.log('✅ Service Worker مسجل');
+        
+        // فحص التحديثات فوراً عند تحميل الصفحة
+        registration.update();
+
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           newWorker.addEventListener('statechange', () => {
@@ -401,9 +405,8 @@ if ('serviceWorker' in navigator) {
   });
 
   let refreshing = false;
-  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || refreshing) return;
+    if (refreshing) return;
     refreshing = true;
     window.location.reload();
   });
