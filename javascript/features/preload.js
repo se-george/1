@@ -4,6 +4,8 @@
 
 import { TREE_API_URL } from '../core/config.js';
 
+const STALL_TIMEOUT_MS = 200;
+
 export function initPreload(onComplete) {
     const preloadScreen = document.getElementById('preload-screen');
     if (!preloadScreen) return;
