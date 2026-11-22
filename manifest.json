@@ -13,27 +13,27 @@
   "categories": ["education", "medical"],
   "icons": [
     {
-      "src": "image/0.png",
+      "src": "image/0.webp",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "image/0.png",
+      "src": "image/0.webp",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "any"
     },
     {
-      "src": "image/0.png",
+      "src": "image/0.webp",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "maskable"
     },
     {
-      "src": "image/0.png",
+      "src": "image/0.webp",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/webp",
       "purpose": "maskable"
     }
   ],
