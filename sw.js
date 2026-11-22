@@ -1,16 +1,5 @@
 // ============================================================
 // sw.js - Service Worker
-//
-// ✅ ده المصدر الوحيد لكل حاجة تخص الكاش:
-//    • اسم الكاش وإصداره (CACHE_NAME)       • قائمة الملفات المحمّلة مسبقاً (urlsToCache)
-//    • استراتيجيات التخزين                   • الحد الأقصى للمحتوى الخارجي والتنظيف
-//
-//    باقي ملفات الموقع (preload.js / ui-controls.js / index.html ...) مبتفتحش ولا بتمسح
-//    Cache Storage بنفسها — بتكلّمني برسائل بس:
-//      الصفحة ← SW :  { action: 'precache' | 'clearCache' | 'skipWaiting' }
-//      SW ← الصفحة :  { type: 'PRECACHE_PROGRESS' | 'PRECACHE_DONE' | 'CACHE_CLEARED' }
-//
-// ⚠️ غيّر CACHE_NAME مع كل نشر (watch-cache.sh بيراقب السطر ده).
 // ============================================================
 const CACHE_PREFIX = 'semester-1-';
 const CACHE_NAME = CACHE_PREFIX + 'cache-v79';   // الواجهة (HTML/CSS/JS/صور الموقع): بتتمسح مع كل إصدار
@@ -55,9 +44,7 @@ const urlsToCache = [
    './javascript/features/preload.js',
    './javascript/features/svg-processor.js',
    './image/0.webp',
-   './image/0.png',
    './image/wood.webp',
-   './image/Upper_wood.webp'
 ];
 
 const OFFLINE_HTML = `<!DOCTYPE html>
