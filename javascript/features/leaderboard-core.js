@@ -1,17 +1,14 @@
 // ============================================
 // leaderboard-core.js - إدارة القائمة والرقم القياسي
-// الإصدار الجديد: يعتمد على ملف JSON يدوي + إرسال لـ Formspree
 // ============================================
 
 import { FORMSPREE_URL } from '../core/config.js';
 import { getPlayerName, getDeviceId } from '../core/utils.js';
 
-// ─── ثوابت ─────────────────────────────────
 export const LEADERBOARD_CACHE_KEY = 'leaderboard_top5_cache';
-export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   // 5 دقائق
+export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   
 export const MAX_CLOUD_SCORES      = 5;
 
-// ─── كائن إدارة الكاش المحلي ──────────────
 export const LeaderboardCache = {
     save(top5) {
         try {
@@ -45,7 +42,6 @@ export const LeaderboardCache = {
     }
 };
 
-// ─── إدارة الرقم القياسي الشخصي ────────────
 export const PersonalRecord = {
     get() {
         return parseInt(localStorage.getItem('personal_best_score') || '0', 10);
@@ -58,25 +54,27 @@ export const PersonalRecord = {
         }
         return false;
     },
-    // تم إيقاف الرفع السحابي لأننا نعتمد على ملف JSON
     async syncToCloud(playerName, deviceId) {
         return Promise.resolve();
     }
 };
 
-// ─── دوال جلب النتائج ──────────────────────
-
-// ✅ جلب النتائج من ملف JSON داخل المشروع (الذي تقوم بتحديثه يدوياً)
 export async function fetchAllCloudScores() {
     try {
-        // نضيف ?v=timestamp لكسر الكاش وجلب أحدث نسخة من الملف
-        const response = await fetch(`./data/leaderboard.json?v=${Date.now()}`);
+        // ✅ إجبار المتصفح على تجاهل الكاش تماماً وطلب الملف من السيرفر مباشرة
+        const response = await fetch(`./data/leaderboard.json?v=${Date.now()}`, { 
+            cache: 'no-store',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        
         if (!response.ok) return [];
         
         const data = await response.json();
         if (!Array.isArray(data)) return [];
         
-        // ترتيب تنازلي حسب النتيجة
         return data.sort((a, b) => b.score - a.score);
     } catch (e) {
         console.error('❌ خطأ جلب النتائج من الملف:', e);
@@ -102,12 +100,10 @@ export async function fetchTop5(forceCloud = false) {
     return { data: top5, fromCache: false };
 }
 
-// لم يعد هناك داعي لهذه الدالة لأننا نتحكم في حجم الملف يدوياً
 export async function pruneCloudScores() {
     return Promise.resolve();
 }
 
-// ─── إرسال النتيجة الجديدة ──────────────────
 export async function sendScoreToServer(playerName, playerScore, deviceId) {
     try {
         console.log('📤 إرسال النتيجة إلى Formspree...');
@@ -119,13 +115,8 @@ export async function sendScoreToServer(playerName, playerScore, deviceId) {
         formData.append('Device_ID', deviceId);
         formData.append('Timestamp', new Date().toLocaleString('ar-EG'));
 
-        // إرسال في الخلفية
         navigator.sendBeacon(FORMSPREE_URL, formData);
         console.log('✅ تم إرسال النتيجة بنجاح (ستظهر في Formspree لتحديث ملف JSON)');
-
-        // لا نقوم بتحديث الكاش المحلي هنا عمداً
-        // حتى تظل القائمة تعرض الـ Top 5 الحقيقيين من الملف،
-        // وسيقوم الأدمن بتحديث الملف يدوياً إذا كانت النتيجة تستحق الدخول للقائمة.
         
         return true;
     } catch (error) {
