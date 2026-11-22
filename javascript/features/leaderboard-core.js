@@ -1,14 +1,17 @@
 // ============================================
 // leaderboard-core.js - إدارة القائمة والرقم القياسي
+// الإصدار الجديد: يعتمد على ملف JSON يدوي + إرسال لـ Formspree
 // ============================================
 
 import { FORMSPREE_URL } from '../core/config.js';
 import { getPlayerName, getDeviceId } from '../core/utils.js';
 
+// ─── ثوابت ─────────────────────────────────
 export const LEADERBOARD_CACHE_KEY = 'leaderboard_top5_cache';
 export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   // 5 دقائق
 export const MAX_CLOUD_SCORES      = 5;
 
+// ─── كائن إدارة الكاش المحلي ──────────────
 export const LeaderboardCache = {
     save(top5) {
         try {
@@ -42,6 +45,7 @@ export const LeaderboardCache = {
     }
 };
 
+// ─── إدارة الرقم القياسي الشخصي ────────────
 export const PersonalRecord = {
     get() {
         return parseInt(localStorage.getItem('personal_best_score') || '0', 10);
@@ -54,23 +58,25 @@ export const PersonalRecord = {
         }
         return false;
     },
-    // لم يعد مستخدماً في الويب، لكن نتركه فارغاً لتجنب الأخطاء
+    // تم إيقاف الرفع السحابي لأننا نعتمد على ملف JSON
     async syncToCloud(playerName, deviceId) {
         return Promise.resolve();
     }
 };
 
-// ✅ جلب النتائج من ملف JSON داخل المشروع
+// ─── دوال جلب النتائج ──────────────────────
+
+// ✅ جلب النتائج من ملف JSON داخل المشروع (الذي تقوم بتحديثه يدوياً)
 export async function fetchAllCloudScores() {
     try {
-        // نطلب الملف من مجلد data
-        const response = await fetch('./data/leaderboard.json');
+        // نضيف ?v=timestamp لكسر الكاش وجلب أحدث نسخة من الملف
+        const response = await fetch(`./data/leaderboard.json?v=${Date.now()}`);
         if (!response.ok) return [];
         
         const data = await response.json();
         if (!Array.isArray(data)) return [];
         
-        // نرتبهم تنازلياً حسب النتيجة
+        // ترتيب تنازلي حسب النتيجة
         return data.sort((a, b) => b.score - a.score);
     } catch (e) {
         console.error('❌ خطأ جلب النتائج من الملف:', e);
@@ -81,23 +87,27 @@ export async function fetchAllCloudScores() {
 export async function fetchTop5(forceCloud = false) {
     if (!forceCloud) {
         const cached = LeaderboardCache.load();
-        // ✅ نتأكد أنها مصفوفة وليست فارغة
-        if (cached && cached.length > 0) return { data: cached, fromCache: true };
+        if (cached && cached.length > 0) {
+            return { data: cached, fromCache: true };
+        }
     }
+    
     console.log('🌐 جلب Top5 من ملف المشروع...');
     const all = await fetchAllCloudScores();
     const top5 = all.slice(0, MAX_CLOUD_SCORES);
     
-    if (top5.length) LeaderboardCache.save(top5);
+    if (top5.length) {
+        LeaderboardCache.save(top5);
+    }
     return { data: top5, fromCache: false };
 }
 
-// لم يعد هناك داعي لحذف النتائج لأننا نعدلها يدوياً
+// لم يعد هناك داعي لهذه الدالة لأننا نتحكم في حجم الملف يدوياً
 export async function pruneCloudScores() {
     return Promise.resolve();
 }
 
-// إرسال النتيجة إلى Formspree فقط
+// ─── إرسال النتيجة الجديدة ──────────────────
 export async function sendScoreToServer(playerName, playerScore, deviceId) {
     try {
         console.log('📤 إرسال النتيجة إلى Formspree...');
@@ -109,14 +119,14 @@ export async function sendScoreToServer(playerName, playerScore, deviceId) {
         formData.append('Device_ID', deviceId);
         formData.append('Timestamp', new Date().toLocaleString('ar-EG'));
 
+        // إرسال في الخلفية
         navigator.sendBeacon(FORMSPREE_URL, formData);
-        console.log('✅ تم إرسال النتيجة بنجاح');
+        console.log('✅ تم إرسال النتيجة بنجاح (ستظهر في Formspree لتحديث ملف JSON)');
 
-        // تحديث الكاش المحلي ليعرض النتيجة الجديدة فوراً في الشاشة
-        // (حتى يتم تحديث ملف JSON يدوياً لاحقاً)
-        const currentTop = await fetchTop5(true);
-        LeaderboardCache.save(currentTop.data);
-
+        // لا نقوم بتحديث الكاش المحلي هنا عمداً
+        // حتى تظل القائمة تعرض الـ Top 5 الحقيقيين من الملف،
+        // وسيقوم الأدمن بتحديث الملف يدوياً إذا كانت النتيجة تستحق الدخول للقائمة.
+        
         return true;
     } catch (error) {
         console.error('❌ خطأ في الإرسال:', error);
