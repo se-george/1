@@ -167,10 +167,13 @@ export async function loadGroupSVG(groupLetter) {
         console.log(`✅ توليد ${groupLetter}: ${groupContainer.children.length} عنصر`);
 
         const injectedImages = groupContainer.querySelectorAll('image[data-src]');
-        imageUrlsToLoad = ['image/wood.webp'];
-        injectedImages.forEach(img => {
-            const src = img.getAttribute('data-src');
-        });
+imageUrlsToLoad = ['image/wood.webp'];
+injectedImages.forEach(img => {
+    const src = img.getAttribute('data-src');
+    if (src && !imageUrlsToLoad.includes(src)) {
+        imageUrlsToLoad.push(src);
+    }
+});
 
         loadingProgress.totalSteps = 1 + imageUrlsToLoad.length;
         loadingProgress.completedSteps = 1;
