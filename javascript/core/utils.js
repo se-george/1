@@ -6,6 +6,21 @@ import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR } from './config.js';
 import { thumbIndex } from './state.js';
 
 // ------------------------------
+// توليد كود HEX عشوائي فريد (مثال: 4A8F9C2B)
+// ------------------------------
+export function getStaticHexId() {
+    let hex = localStorage.getItem('static_hex_id');
+    if (!hex) {
+        // توليد 4 بايت عشوائية آمنة وتحويلها لـ HEX
+        const array = new Uint8Array(4);
+        window.crypto.getRandomValues(array);
+        hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        localStorage.setItem('static_hex_id', hex);
+    }
+    return hex;
+}
+
+// ------------------------------
 // تحويل النصوص والترجمة
 // ------------------------------
 export function normalizeArabic(text) {
@@ -91,25 +106,19 @@ export function getGroupImage(element) {
 // ------------------------------
 export function getDisplayName() {
     const realName = localStorage.getItem('user_real_name');
+    // 1. الأولوية للاسم الديناميكي
     if (realName && realName.trim()) {
         return realName.trim();
     }
-    // استخدام الكود المميز المكون من 4 أرقام بدلاً من "زائر"
-    const visitorId = localStorage.getItem('visitor_id');
-    return visitorId || '0000'; // إذا لم يوجد بعد، نعرض 0000 مؤقتاً
+    // 2. في حال عدم وجوده، نرجع كود HEX الثابت
+    return getStaticHexId();
 }
 
 export function getPlayerName() {
     if (typeof UserTracker !== 'undefined' && typeof UserTracker.getDisplayName === 'function') {
         return UserTracker.getDisplayName();
     }
-    const realName = localStorage.getItem('user_real_name');
-    if (realName && realName.trim()) {
-        return realName.trim();
-    }
-    // نفس التعديل هنا
-    const visitorId = localStorage.getItem('visitor_id');
-    return visitorId || '0000';
+    return getDisplayName();
 }
 
 export function getDeviceId() {
@@ -118,7 +127,8 @@ export function getDeviceId() {
     }
     const stored = localStorage.getItem('device_fingerprint');
     if (stored) return stored;
-    return localStorage.getItem('visitor_id') || 'unknown';
+    // المعرف الافتراضي هو كود HEX
+    return getStaticHexId();
 }
 
 // ------------------------------
@@ -173,24 +183,21 @@ export const hasShownError = (url) => _shownErrors.has(url);
 
 // ------------------------------
 // إعادة تعيين مستوى التكبير (Zoom) لـ 100% حقيقي
-// تُستدعى فقط عند فتح/إغلاق PDF
 // ------------------------------
 export function resetBrowserZoom() {
     const viewport = document.querySelector('meta[name=viewport]');
     if (!viewport) return;
 
-    // Step 1: force reset إلى 1x
     viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 
     requestAnimationFrame(() => {
-        // Step 2: فوراً نرجع للسماح بالزوم بدون أي delay
         viewport.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
     });
 }
+
 // ------------------------------
-// صور مصغّرة (thumbnails) — بتتولّد بـ .github/workflows/generate-thumbs.yml
+// صور مصغّرة (thumbnails)
 // ------------------------------
-// بترجّع رابط الـ thumbnail لو موجود في الشجرة، وإلا null (والمتصل يرجع للأصل).
 export function getThumbUrl(path) {
     if (!path) return null;
     const clean = String(path).replace(/^\.?\//, '');
@@ -203,13 +210,11 @@ export function getThumbUrl(path) {
 // ------------------------------
 // مسح الكاش — من خلال الـ Service Worker فقط
 // ------------------------------
-// sw.js هو المصدر الوحيد للكاش: مفيش حد تاني بيفتح أو بيمسح Cache Storage بنفسه.
-// بنبعتله أمر clearCache وبنستنى تأكيد CACHE_CLEARED (بحد أقصى timeoutMs).
 export async function clearAppCaches(timeoutMs = 4000) {
     if (!('serviceWorker' in navigator)) return false;
     const registration = await navigator.serviceWorker.getRegistration();
     const worker = registration && (registration.active || registration.waiting || registration.installing);
-    if (!worker) return false; // مفيش SW = مفيش كاش تابع للتطبيق
+    if (!worker) return false; 
 
     return new Promise(resolve => {
         const finish = (ok) => {
