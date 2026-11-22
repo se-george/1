@@ -753,7 +753,7 @@ export function updateWelcomeMessages() {
     }
     const loadingH1 = document.querySelector('#loading-content h1');
     if (loadingH1 && currentGroup) {
-        loadingH1.innerHTML = `أهلاً بك يا <span style="color: #ffca28;">${displayName}</span><br>في ${REPO_NAME.toUpperCase()}`;
+        loadingH1.innerHTML = `أهلاً بك يا <span style="color: #ffca28;">${displayName}</span><br>في ترم  ${REPO_NAME.toUpperCase()}`;
     }
 }
 
