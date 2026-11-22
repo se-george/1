@@ -39,7 +39,8 @@ tue:[
 {cls:'m l',href:'./Unknown.pdf'}],
 sun:[
 {cls:'m s',href:'./Unknown.pdf'},
-{cls:'m l',href:'./IS/Lecture/E.-commerce.pdf'},],
+{cls:'m l',href:'./IS/Lecture/E.-commerce.pdf'},
+{cls:'m s',href:'./Unknown.pdf'}],
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
 {cls:'m l',href:'./Bio/Lecture/c_overview-am.pdf'},
