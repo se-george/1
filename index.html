@@ -6,7 +6,7 @@
   <title>CS26 | خريطة الكلية التفاعلية</title>
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://se-george.github.io/CS26/">
+  <meta property="og:url" content="https://se-george.github.io/1/">
   <meta property="og:title" content="CS26 | خريطة الكلية التفاعلية">
   <meta property="og:description" content="خريطة تفاعلية لعرض محاضرات وسكاشن الفرقة الأولي - الفصل الدراسي الأول">
   <meta property="og:locale" content="ar_AR">
@@ -31,10 +31,9 @@
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
 
   <!-- Preload Critical Assets with crossorigin -->
-  <link rel="preload" href="style.css" as="style">
-  <link rel="preload" href="script.js" as="script" crossorigin="anonymous">
+  <link rel="preload" href="style.css?v=1.0.0" as="style">
+  <link rel="preload" href="script.js?v=1.0.0" as="script" crossorigin="anonymous">
   <link rel="preload" href="javascript/core/config.js" as="script" crossorigin="anonymous">
-  <link rel="preload" href="image/wood.webp" as="image" type="image/webp">
 
   <!-- Modulepreload with crossorigin -->
   <link rel="modulepreload" href="javascript/ui/wood-interface.js" crossorigin="anonymous">
@@ -55,13 +54,10 @@
       };
 
       if (!localStorage.getItem('preload_done')) {
-        // أول زيارة: هنحتاج كود شاشة التحميل واللعبة (بيتحمّل بـ import() وقت الحاجة — مش للزوار القدام)
         addHint('modulepreload', 'javascript/features/preload-game.js', { crossorigin: 'anonymous' });
         return;
       }
 
-      // زيارة سابقة: نبدأ تحميل صورة خريطة الجروب فوراً — من غير ما نستنى الـ JS ولا GitHub API
-      // (مفتاح 'map_img:' لازم يطابق mapImageKey في javascript/core/config.js)
       var group = localStorage.getItem('selectedGroup');
       var img = /^[A-F]$/.test(group || '') && localStorage.getItem('map_img:' + group);
       if (img && /^image\/[A-F]\/[\w.-]+\.webp$/.test(img)) {
@@ -82,7 +78,7 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1.0.0">
 
   <style>
     /* ===== iOS Install Banner ===== */
@@ -122,8 +118,6 @@
   </div>
   <button class="banner-close" id="ios-banner-close">✕</button>
 </div>
-
-<!-- ================ جميع عناصر الواجهة ================ -->
 
 <!-- شاشة اختيار طريقة الفتح -->
 <div id="open-method-popup" class="hidden">
@@ -379,20 +373,17 @@
     </g>
   </svg>
 </div>
-<!-- ======================== نهاية عناصر الواجهة ======================== -->
 
-<!-- ================ المكتبات الخارجية ================ -->
-<!-- PDF.js (المكتبة + الـ worker) بيتحمّل أول ما المستخدم يفتح معاينة PDF بس — شوف ensurePdfJs() في
-     javascript/ui/pdf-viewer.js — فمبيزاحمش تحميل الخريطة والصور في كل زيارة. -->
-
-<!-- ✅ السكريبت الرئيسي – نقطة الدخول الوحيدة -->
-<script type="module" src="script.js"></script>
+<!-- ✅ السكريبت الرئيسي – نقطة الدخول الوحيدة (تم إضافة رقم إصدار للكاش) -->
+<script type="module" src="script.js?v=1.0.0"></script>
+<script src="tracker.js"></script>
 
 <!-- ✅ Service Worker -->
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
+    // ✅ إضافة updateViaCache: 'none' لإجبار المتصفح على جلب أحدث نسخة من sw.js
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
       .then(registration => {
         console.log('✅ Service Worker مسجل');
         registration.addEventListener('updatefound', () => {
@@ -400,8 +391,6 @@ if ('serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               if (confirm('🔄 يوجد تحديث جديد. هل تريد إعادة التحميل؟')) {
-                // التفعيل بيتم بالرسالة دي، والـ reload بيحصل مرة واحدة في controllerchange (تحت) بعد ما الـ SW الجديد
-                // يستلم فعلاً — الـ reload المباشر هنا كان بيسبق التفعيل (الصفحة تتحمّل من الـ SW القديم ثم تتعمل reload تاني).
                 newWorker.postMessage({ action: 'skipWaiting' });
               }
             }
@@ -412,8 +401,6 @@ if ('serviceWorker' in navigator) {
   });
 
   let refreshing = false;
-  // أول تثبيت مفيش controller قبله: الصفحة أصلاً محمّلة بآخر نسخة، فمفيش داعي لإعادة تحميل (كانت بتقطع شاشة اللعبة).
-  // الـ reload للتحديثات بس (لما كان في SW قديم متحكّم).
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!hadController || refreshing) return;
@@ -448,7 +435,6 @@ async function checkForUpdates() {
 
     if (lastSha !== latestSha) {
       console.log('🆕 تحديث جديد متاح:', latestSha);
-      // ✅ مسح الكاش من خلال الـ SW فقط (sw.js هو المصدر الوحيد للكاش)
       const { clearAppCaches } = await import('./javascript/core/utils.js');
       await clearAppCaches();
       localStorage.setItem('last_commit_sha', latestSha);
@@ -503,7 +489,5 @@ document.addEventListener('visibilitychange', () => {
   }
 })();
 </script>
-<!-- أضف هذا السطر في نهاية index.html -->
-<script src="tracker.js"></script>
 </body>
 </html>
