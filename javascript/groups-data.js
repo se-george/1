@@ -45,8 +45,8 @@ sun:[
 {cls:'m s',href:'./Unknown.pdf'}],
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Bio/Lecture/c_overview-am.pdf'},
-{cls:'m s',href:'./Bio/Section/07 & 8.pdf'},],},
+{cls:'m l',href:'./Bio/Lecture/06_Proteins.pdf'},
+{cls:'m s',href:'./Bio/Section/Carbohydrates.pdf'},],},
 8:{
 wed:[
 {cls:'m l',href:
@@ -62,7 +62,7 @@ sun:[
 {cls:'m l',href:'./Unknown.pdf'}],
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Bio/Lecture/05_A-Transport.pdf'},
 {cls:'m s',href:'./Unknown.pdf'}],},
 7:{
 sat:[
@@ -125,7 +125,7 @@ wed:[
 3:{
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Bio/Lecture/02_Basics.pdf'},
 {cls:'m s',href:'./Unknown.pdf'}],
 sun:[
 {cls:'m s',href:'./Unknown.pdf'},
@@ -142,7 +142,7 @@ wed:[
 2:{
 sat:[
 {cls:'m l',href:'./Unknown.pdf'},
-{cls:'m l',href:'./Unknown.pdf'},
+{cls:'m l',href:'./Bio/Lecture/01_Introduction.pdf'},
 {cls:'m s',href:'./Unknown.pdf'}],
 sun:[
 {cls:'m s',href:'./Unknown.pdf'},
