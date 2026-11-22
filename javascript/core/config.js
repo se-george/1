@@ -4,21 +4,10 @@
 
 export const REPO_NAME = "1";
 export const GITHUB_USER = "se-george";
-
-// ⚠️ الكاش كله (الاسم، الإصدار، قائمة الملفات، الحد الأقصى، المسح) معرّف في sw.js فقط.
-//    مفيش اسم كاش ولا قائمة ملفات للكاش هنا ولا في أي ملف تاني — الصفحة بتكلّم الـ SW برسائل بس.
-
 export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;
 export const TREE_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/git/trees/main?recursive=1`;
 export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/main/`;
-
-// صورة خريطة الجروب (الخلفية اللي بتتركّب عليها المستطيلات): image/<الجروب>/<الاسم>
-// الكود بيجرّب الأسماء بالترتيب ويستخدم أول اسم موجود فعلاً.
 export const GROUP_IMAGE_NAMES = ['01.webp'];
-
-// آخر مسار اتحمّل بنجاح لكل جروب بيتحفظ (تلميح مش كاش) ونفضّله في الزيارة الجاية:
-//  - مفيش طلب 404 على الاسم الغلط
-//  - index.html بيعمل preload للصورة دي من أول ما الصفحة تفتح (لازم نفس مفتاح 'map_img:' هناك)
 const mapImageKey = (groupLetter) => `map_img:${groupLetter}`;
 
 export const groupImagePaths = (groupLetter) => {
