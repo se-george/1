@@ -117,11 +117,9 @@ export function getGroupImage(element) {
 // ------------------------------
 export function getDisplayName() {
     const realName = localStorage.getItem('user_real_name');
-    // 1. الأولوية للاسم الديناميكي
     if (realName && realName.trim()) {
         return realName.trim();
     }
-    // 2. في حال عدم وجوده، نرجع كود HEX الثابت
     return getStaticHexId();
 }
 
@@ -138,7 +136,6 @@ export function getDeviceId() {
     }
     const stored = localStorage.getItem('device_fingerprint');
     if (stored) return stored;
-    // المعرف الافتراضي هو كود HEX
     return getStaticHexId();
 }
 
@@ -214,20 +211,15 @@ export function setupMouseWheelZoom() {
     }, { passive: false });
 }
 
-// تصفير الزوم وإرجاع التمرير للبداية
+// تصفير الزوم فقط (بدون التأثير على شريط التنقل أو مكان التمرير)
 export function resetSvgZoom() {
     currentSvgZoom = 1;
     const svg = document.getElementById('main-svg');
-    const scrollContainer = document.getElementById('scroll-container');
     
     if (svg) {
         svg.style.transition = 'none';
         svg.style.height = ''; 
-        
-        // إعادة التمرير إلى بداية الخريطة لمنع الشاشة من "الضياع"
-        if (scrollContainer) {
-            scrollContainer.scrollLeft = 0;
-        }
+        // ✅ تم إزالة أمر إرجاع شريط التنقل (scrollLeft = 0) ليبقى المستخدم في مكانه
     }
 }
 
