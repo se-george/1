@@ -3,6 +3,7 @@
 // ============================================
 
 import { NAV_STATE } from '../core/config.js';
+import { clearAppCaches } from '../core/utils.js';
 import { goToWood, pushNavigationState, goToMapEnd } from '../core/navigation.js';
 
 export function setupGroupChangeButton() {
@@ -60,15 +61,9 @@ export function setupResetButton() {
             localStorage.clear();
             sessionStorage.clear();
 
-            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.controller.postMessage({ action: 'clearCache' });
-                console.log('📡 تم إرسال أمر مسح الملفات للـ SW');
-            }
-
-            if ('caches' in window) {
-                const cacheNames = await caches.keys();
-                await Promise.all(cacheNames.map(name => caches.delete(name)));
-            }
+            // ✅ مسح الكاش بيتم من خلال الـ Service Worker فقط (sw.js هو المصدر الوحيد للكاش)
+            await clearAppCaches();
+            console.log('📡 الـ SW مسح كاش التطبيق');
 
             alert('تم مسح الملفات بنجاح. سيتم إعادة تشغيل الموقع الآن.');
             window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();

@@ -6,7 +6,7 @@
 
 import { RAW_CONTENT_BASE, NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState } from '../core/navigation.js';
-import { resetBrowserZoom } from '../core/utils.js';
+import { resetBrowserZoom, getThumbUrl } from '../core/utils.js';
 
 export let currentPreviewItem = null;
 export let isToolbarExpanded = false;
@@ -16,6 +16,66 @@ export let isPdfToolbarHidden = false; // حالة إخفاء شريط أدوا�
 let dragActive = false;
 let startX, startY, initialLeft, initialTop;
 let currentBlobUrl = null; // لتتبع الـ Blob URL النشط ومسحه من الذاكرة
+
+// ---------- تحميل PDF.js عند الحاجة فقط ----------
+// ⚡ المكتبة + الـ worker (تقال) مبقوش بيتحمّلوا في كل زيارة: بيتحمّلوا أول ما نحتاج نرسم صفحة PDF،
+//    ولو الملف ليه thumbnail جاهز (thumbs/) مش بنحتاجهم خالص. التخزين بيتم في كاش الـ SW (sw.js).
+const PDFJS_VERSION = '3.11.174';
+const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/`;
+const PDFJS_CMAPS = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/cmaps/`;
+let pdfJsPromise = null;
+
+export function ensurePdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (!pdfJsPromise) {
+        pdfJsPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = PDFJS_BASE + 'pdf.min.js';
+            script.crossOrigin = 'anonymous'; // رد CORS عادي (مش opaque)
+            script.onload = () => {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + 'pdf.worker.min.js';
+                resolve(window.pdfjsLib);
+            };
+            script.onerror = () => {
+                pdfJsPromise = null; // نسمح بمحاولة تانية
+                reject(new Error('PDF.js غير محمل'));
+            };
+            document.head.appendChild(script);
+        });
+    }
+    return pdfJsPromise;
+}
+
+// إعدادات تحميل الـ PDF في مكان واحد (كانت مكررة في المعاينتين)
+async function loadPdfDocument(url) {
+    const pdfjs = await ensurePdfJs();
+    return pdfjs.getDocument({
+        url: url,
+        cMapUrl: PDFJS_CMAPS,
+        cMapPacked: true,
+        disableRange: true,
+        disableStream: true,
+        disableAutoFetch: true
+    }).promise;
+}
+
+// صورة الصفحة الأولى الجاهزة (thumbnail) — null لو مش موجودة/فشلت فنرجع لـ PDF.js
+function loadImage(url) {
+    return new Promise(resolve => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // نفس نمط الطلب كل مرة = نفس عنصر الكاش
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+    });
+}
+
+const previewErrorMessage = (error) =>
+    error && error.name === 'MissingPDFException' ? '❌ الملف غير موجود' : '❌ فشل التحميل';
+
+// أحدث فتح بس هو اللي يترسم (لو المستخدم فتح/قفل ملف تاني بسرعة)
+let previewToken = 0; // معاينة الضغط المطوّل
+let methodToken = 0;  // نافذة خيارات الفتح
 
 // ---------- معاينة PDF (محدثة بجودة عالية) ----------
 export async function showPDFPreview(item) {
@@ -62,50 +122,49 @@ export async function showPDFPreview(item) {
 
     console.log('🔍 معاينة:', url);
 
+    const token = ++previewToken;
+
     try {
-        if (typeof pdfjsLib === 'undefined') {
-            throw new Error('PDF.js غير محمل');
+        // ⚡ لو في thumbnail جاهز (بيتولّد تلقائي) بنعرضه فوراً من غير تحميل الـ PDF ولا PDF.js
+        const thumbUrl = getThumbUrl(item.path);
+        const thumbImg = thumbUrl ? await loadImage(thumbUrl) : null;
+        let imgData = thumbImg ? thumbImg.src : null;
+
+        if (!imgData) {
+            // مفيش thumbnail: نرسم أول صفحة بـ PDF.js (بيتحمّل عند الحاجة بس)
+            const pdf = await loadPdfDocument(url);
+            console.log('📄 PDF محمل:', pdf.numPages, 'صفحة');
+
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 }); // زيادة الدقة
+
+            // ضبط أبعاد canvas
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            const context = canvas.getContext('2d', { alpha: false });
+            context.fillStyle = 'white';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            // رسم الصفحة
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+                enableWebGL: false,
+                renderInteractiveForms: false
+            };
+
+            await page.render(renderContext).promise;
+
+            // تحويل canvas إلى صورة PNG
+            imgData = canvas.toDataURL('image/png', 1.0);
         }
 
-        // تحميل PDF مع إعدادات التوافق
-        const loadingTask = pdfjsLib.getDocument({
-            url: url,
-            cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-            cMapPacked: true,
-            disableRange: true,
-            disableStream: true,
-            disableAutoFetch: true
-        });
-
-        const pdf = await loadingTask.promise;
-        console.log('📄 PDF محمل:', pdf.numPages, 'صفحة');
-
-        const page = await pdf.getPage(1);
-        const viewport = page.getViewport({ scale: 2.0 }); // زيادة الدقة
-
-        // ضبط أبعاد canvas
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        const context = canvas.getContext('2d', { alpha: false });
-        context.fillStyle = 'white';
-        context.fillRect(0, 0, canvas.width, canvas.height);
-
-        // رسم الصفحة
-        const renderContext = {
-            canvasContext: context,
-            viewport: viewport,
-            enableWebGL: false,
-            renderInteractiveForms: false
-        };
-
-        await page.render(renderContext).promise;
-
-        // تحويل canvas إلى صورة PNG
-        const imgData = canvas.toDataURL('image/png', 1.0);
+        if (token !== previewToken) return; // اتفتح/اتقفل ملف تاني في الأثناء
 
         // إنشاء عنصر img لعرض الصورة
         const previewImg = document.createElement('img');
+        previewImg.crossOrigin = 'anonymous'; // نفس نمط طلب الـ thumbnail (نفس عنصر الكاش)
         previewImg.src = imgData;
         previewImg.style.width = '100%';
         previewImg.style.height = 'auto';
@@ -127,9 +186,10 @@ export async function showPDFPreview(item) {
         console.log('✅ تم تحويل المعاينة إلى صورة PNG عالية الجودة');
 
     } catch (error) {
+        if (token !== previewToken) return;
         console.error('❌ خطأ في المعاينة:', error);
         if (loading) {
-            loading.textContent = '❌ فشل تحميل المعاينة';
+            loading.textContent = error && error.name === 'MissingPDFException' ? '❌ الملف غير موجود' : '❌ فشل تحميل المعاينة';
         }
 
         const errorMsg = document.createElement('div');
@@ -145,6 +205,7 @@ export async function showPDFPreview(item) {
 }
 
 export function closePDFPreview() {
+    previewToken++; // نلغي أي تحميل لسه شغّال
     const popup = document.getElementById('pdf-preview-popup');
     const canvas = document.getElementById('preview-canvas');
 
@@ -198,48 +259,51 @@ export function showOpenOptions(item) {
     console.log('📋 عرض خيارات الفتح:', url);
 
     if (canvas) {
+        const token = ++methodToken;
         (async () => {
             try {
-                if (typeof pdfjsLib === 'undefined') {
-                    throw new Error('PDF.js غير محمل');
+                // ⚡ thumbnail جاهز: نرسمه على نفس الـ canvas من غير تحميل الـ PDF ولا PDF.js
+                const thumbUrl = getThumbUrl(item.path);
+                const thumbImg = thumbUrl ? await loadImage(thumbUrl) : null;
+
+                if (thumbImg) {
+                    if (token !== methodToken) return;
+                    canvas.width = thumbImg.naturalWidth;
+                    canvas.height = thumbImg.naturalHeight;
+                    canvas.getContext('2d', { alpha: false }).drawImage(thumbImg, 0, 0);
+                } else {
+                    const pdf = await loadPdfDocument(url);
+                    const page = await pdf.getPage(1);
+                    if (token !== methodToken) return;
+                    const viewport = page.getViewport({ scale: 1.5 });
+
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    const context = canvas.getContext('2d', { alpha: false });
+                    context.fillStyle = 'white';
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+
+                    await page.render({ canvasContext: context, viewport }).promise;
                 }
 
-                const loadingTask = pdfjsLib.getDocument({
-                    url: url,
-                    cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-                    cMapPacked: true,
-                    disableRange: true,
-                    disableStream: true,
-                    disableAutoFetch: true
-                });
-
-                const pdf = await loadingTask.promise;
-                const page = await pdf.getPage(1);
-                const viewport = page.getViewport({ scale: 1.5 });
-
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
-
-                const context = canvas.getContext('2d', { alpha: false });
-                context.fillStyle = 'white';
-                context.fillRect(0, 0, canvas.width, canvas.height);
-
-                await page.render({ canvasContext: context, viewport }).promise;
-
+                if (token !== methodToken) return;
                 if (loading) {
                     loading.classList.add('hidden');
                     loading.style.display = 'none';
                 }
                 canvas.style.display = 'block';
             } catch (error) {
+                if (token !== methodToken) return;
                 console.error('❌ خطأ في المعاينة المصغرة:', error);
-                if (loading) loading.textContent = '❌ فشل التحميل';
+                if (loading) loading.textContent = previewErrorMessage(error);
             }
         })();
     }
 }
 
 export function closeOpenOptions() {
+    methodToken++; // نلغي أي تحميل لسه شغّال
     const popup = document.getElementById('open-method-popup');
     if (popup) {
         popup.classList.add('hidden');

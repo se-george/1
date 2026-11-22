@@ -1,32 +1,17 @@
 // ============================================
-// preload.js - نظام التحميل المسبق فقط
+// preload.js - شاشة التحميل المسبق (عرض التقدّم فقط)
+// ✅ مفيش هنا قائمة ملفات ولا اسم كاش ولا أي لمس لـ Cache Storage:
+//    sw.js هو المصدر الوحيد للكاش — هو اللي بيحمّل urlsToCache كلها بالتوازي
+//    وبيبعتلنا التقدّم (PRECACHE_PROGRESS / PRECACHE_DONE)، واحنا بنعرضه بس.
 // ============================================
 
-// قائمة الملفات المراد تحميلها مسبقاً
-const FILES_TO_LOAD = [
-    './style.css',
-    './tracker.js',
-    './script.js',
-    './javascript/core/config.js',
-    './javascript/core/utils.js',
-    './javascript/core/navigation.js',
-    './javascript/core/group-loader.js',
-    './javascript/core/state.js',
-    './javascript/ui/pdf-viewer.js',
-    './javascript/ui/wood-interface.js',
-    './javascript/ui/search-and-eye.js',
-    './javascript/ui/ui-controls.js',
-    './javascript/ui/scroll-system.js',
-    './javascript/features/preload-game.js',
-    './javascript/features/svg-processor.js',
-    './image/wood.webp',
-    './image/Upper_wood.webp',
-    './javascript/groups-data.js',
-    './javascript/core/svg-generator.js'
-];
+import { TREE_API_URL } from '../core/config.js';
+
+// لو الـ SW ماردّش خالص (متصفح/وضع مش بيدعمه) منعلّقش المستخدم على الشاشة
+const STALL_TIMEOUT_MS = 20000;
 
 /**
- * بدء التحميل المسبق
+ * بدء شاشة التحميل المسبق
  * @param {Function} onComplete - دالة تُستدعى بعد اكتمال التحميل (اختياري)
  */
 export function initPreload(onComplete) {
@@ -49,51 +34,23 @@ export function initPreload(onComplete) {
     const fileStatus = document.getElementById('fileStatus');
     const continueBtn = document.getElementById('continueBtn');
 
-    let loadedFiles = 0;
-    const totalFiles = FILES_TO_LOAD.length;
+    let finished = false;
+    let stallTimer = null;
 
-    function updateProgress() {
-        const percentage = Math.round((loadedFiles / totalFiles) * 100);
+    function updateProgress(done, total) {
+        const percentage = total ? Math.round((done / total) * 100) : 100;
         if (progressBar) {
             progressBar.style.width = percentage + '%';
             progressBar.textContent = percentage + '%';
         }
     }
 
-    async function loadFile(url) {
-        try {
-            const cache = await caches.open('semester-3-cache-v1');
-            const cachedResponse = await cache.match(url);
-
-            if (cachedResponse) {
-                console.log(`✅ كاش: ${url}`);
-            } else {
-                console.log(`🌐 تحميل: ${url}`);
-                const response = await fetch(url);
-                if (response.ok) {
-                    await cache.put(url, response.clone());
-                    console.log(`💾 حفظ: ${url}`);
-                }
-            }
-
-            loadedFiles++;
-            updateProgress();
-            if (fileStatus) {
-                fileStatus.textContent = `✔ ${url.split('/').pop()}`;
-            }
-        } catch (error) {
-            console.error('❌ خطأ:', url, error);
-            loadedFiles++;
-            updateProgress();
-        }
-    }
-
-    async function startLoading() {
-        for (const file of FILES_TO_LOAD) {
-            await loadFile(file);
-        }
-
-        if (fileStatus) fileStatus.textContent = '🎉 اكتمل التحميل!';
+    function finish(message) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(stallTimer);
+        updateProgress(1, 1);
+        if (fileStatus) fileStatus.textContent = message;
         if (continueBtn) continueBtn.style.display = 'block';
 
         // استدعاء callback إذا وُجد
@@ -102,22 +59,63 @@ export function initPreload(onComplete) {
         }
     }
 
-    startLoading();
+    function armStallTimer() {
+        clearTimeout(stallTimer);
+        stallTimer = setTimeout(
+            () => finish('✔ جاهز (التخزين المسبق بيكمّل في الخلفية)'),
+            STALL_TIMEOUT_MS
+        );
+    }
+
+    // تقدّم التحميل من الـ SW
+    function onMessage(event) {
+        const msg = event.data;
+        if (!msg || finished) return;
+
+        if (msg.type === 'PRECACHE_PROGRESS') {
+            armStallTimer();
+            updateProgress(msg.done, msg.total);
+            if (fileStatus) fileStatus.textContent = `✔ ${msg.file}`;
+        } else if (msg.type === 'PRECACHE_DONE') {
+            finish('🎉 اكتمل التحميل!');
+        }
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', onMessage);
+        if (navigator.serviceWorker.startMessages) navigator.serviceWorker.startMessages();
+        armStallTimer();
+
+        // أول زيارة: الـ SW بيحمّل وهو بيتثبّت. لو كان شغّال قبل كده (مثلاً لعبة "شاشة التحميل" من الإعدادات)
+        // بنطلب منه يتأكد من الملفات (اللي موجود بيعدّي فوراً). وبنطلب منه يسخّن شجرة الملفات —
+        // الرابط من config.js (مصدره الوحيد) والتخزين بيتم جوه الـ SW.
+        navigator.serviceWorker.ready
+            .then(registration => {
+                if (registration.active) {
+                    registration.active.postMessage({ action: 'precache', warm: [TREE_API_URL] });
+                }
+            })
+            .catch(() => { /* الـ stall timer هيكمّل */ });
+    } else {
+        finish('✔ جاهز');
+    }
 
     // عند الضغط على متابعة
-    continueBtn.addEventListener('click', () => {
-        console.log('✅ حفظ حالة preload_done');
-        localStorage.setItem('preload_done', 'true');
-        localStorage.setItem('last_visit_timestamp', Date.now());
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            console.log('✅ حفظ حالة preload_done');
+            localStorage.setItem('preload_done', 'true');
+            localStorage.setItem('last_visit_timestamp', Date.now());
 
-        preloadScreen.classList.add('hidden');
+            preloadScreen.classList.add('hidden');
 
-        // إظهار المحتوى الرئيسي
-        mainContent.forEach(el => {
-            if (el) el.style.display = '';
+            // إظهار المحتوى الرئيسي
+            mainContent.forEach(el => {
+                if (el) el.style.display = '';
+            });
+
+            // إعادة تحميل الصفحة لبدء التشغيل الطبيعي
+            window.location.reload();
         });
-
-        // إعادة تحميل الصفحة لبدء التشغيل الطبيعي
-        window.location.reload();
-    });
+    }
 }

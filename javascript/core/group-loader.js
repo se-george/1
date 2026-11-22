@@ -1,4 +1,4 @@
-import { RAW_CONTENT_BASE, REPO_NAME, GITHUB_USER, TREE_API_URL, NAV_STATE } from './config.js';
+import { RAW_CONTENT_BASE, REPO_NAME, GITHUB_USER, TREE_API_URL, NAV_STATE, rememberGroupImage } from './config.js';
 import { getDisplayName, debounce } from './utils.js';
 import { pushNavigationState, goToWood } from './navigation.js';
 import { setCurrentGroup, setCurrentFolder, setGlobalFileTree, globalFileTree, currentGroup } from './state.js';
@@ -15,46 +15,44 @@ let loadingProgress = {
 };
 
 // ---------- شجرة الملفات ----------
-export async function fetchGlobalTree() {
-    if (globalFileTree.length > 0) return;
+// ✅ كاش الشجرة في مكان واحد بس: الـ Service Worker (sw.js) — بيجيب الأحدث من الشبكة، ولو GitHub
+//    بطيء/محجوب (403) أو أوفلاين بيرجّع آخر نسخة سليمة. مفيش نسخة localStorage تانية.
+const TREE_TIMEOUT_MS = 10000;
+let treePromise = null;
+
+// نسخة localStorage القديمة (كانت توصل 4MB) — بنمسحها لو لسه موجودة
+try {
+    localStorage.removeItem('cached_file_tree');
+    localStorage.removeItem('cached_file_tree_time');
+} catch (e) { /* التخزين مقفول */ }
+
+// لو في طلب شغّال بنرجّع نفس الـ Promise (الصور بتتحمّل بالتوازي معاه مش بعده)
+export function fetchGlobalTree() {
+    if (globalFileTree.length > 0) return Promise.resolve();
+    if (!treePromise) {
+        treePromise = loadGlobalTree().finally(() => { treePromise = null; });
+    }
+    return treePromise;
+}
+
+async function loadGlobalTree() {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TREE_TIMEOUT_MS);
 
     try {
-        const response = await fetch(TREE_API_URL);
+        const response = await fetch(TREE_API_URL, { signal: controller.signal });
         if (!response.ok) throw new Error(`API status ${response.status}`);
 
         const data = await response.json();
-
         if (data.tree && data.tree.length > 0) {
             setGlobalFileTree(data.tree);
             console.log("✅ تم تحميل شجرة الملفات:", globalFileTree.length);
-
-            try {
-                const treeStr = JSON.stringify(data.tree);
-                if (treeStr.length < 4 * 1024 * 1024) {
-                    localStorage.setItem('cached_file_tree', treeStr);
-                    localStorage.setItem('cached_file_tree_time', Date.now().toString());
-                }
-            } catch (e) {
-                console.warn('⚠️ فشل حفظ الشجرة في localStorage:', e);
-            }
             return;
         }
     } catch (err) {
-        console.warn("⚠️ فشل جلب الشجرة - محاولة الـ fallback:", err);
-    }
-
-    try {
-        const cached = localStorage.getItem('cached_file_tree');
-        if (cached) {
-            const tree = JSON.parse(cached);
-            if (Array.isArray(tree) && tree.length > 0) {
-                setGlobalFileTree(tree);
-                console.log("📦 شجرة الملفات من الكاش المحلي:", tree.length);
-                return;
-            }
-        }
-    } catch (e) {
-        console.error('❌ فشل قراءة الكاش المحلي:', e);
+        console.warn("⚠️ فشل جلب الشجرة (ومفيش نسخة محفوظة في الـ SW):", err);
+    } finally {
+        clearTimeout(timer);
     }
 
     console.warn("⚠️ لا توجد شجرة ملفات متاحة (أول زيارة أوفلاين؟)");
@@ -212,7 +210,10 @@ export async function initializeGroup(groupLetter) {
     pushNavigationState(NAV_STATE.WOOD_VIEW, { group: groupLetter });
 
     showLoadingScreen(groupLetter);
-    await Promise.all([fetchGlobalTree(), loadGroupSVG(groupLetter)]);
+    // ⚡ الشجرة بتتجاب بالتوازي (finishLoading بيستناها قبل بناء قائمة الملفات)
+    //    والصور مبقتش بتستنى GitHub API قبل ما تبدأ تتحمّل
+    fetchGlobalTree();
+    await loadGroupSVG(groupLetter);
 
     updateDynamicSizes();
     await loadImages();
@@ -288,6 +289,7 @@ export async function loadImages() {
                     }
                 });
                 console.log(`✅ تم تحديث الصورة: ${url.split('/').pop()}`);
+                if (currentGroup && url.startsWith(`image/${currentGroup}/`)) rememberGroupImage(currentGroup, url);
 
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
@@ -364,6 +366,8 @@ async function finishLoading() {
 
     const { scan } = await import('../features/svg-processor.js');
     const { updateWoodInterface } = await import('../ui/wood-interface.js');
+
+    await fetchGlobalTree(); // اتجابت بالتوازي مع الصور — هنا بس بنتأكد إنها وصلت (أو فشلت)
 
     updateDynamicSizes();
     scan();

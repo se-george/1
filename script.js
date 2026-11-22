@@ -2,14 +2,12 @@
 // script.js - نقطة الدخول الرئيسية (ES Module)
 // ============================================
 
-import { initPreloadSystem } from './javascript/features/preload-game.js';
 import { setupBackButton } from './javascript/core/navigation.js';
 import { preventInteractionWhenHidden, initWoodUI, updateWelcomeMessages } from './javascript/ui/wood-interface.js';
 import { initPDFViewer } from './javascript/ui/pdf-viewer.js';
 import { initializeGroup, loadSelectedGroup } from './javascript/core/group-loader.js';
 import { scan } from './javascript/features/svg-processor.js';
 import { resetBrowserZoom } from './javascript/core/utils.js';
-import { checkForUpdates } from './javascript/core/update-checker.js';
 import { smartOpen } from './javascript/ui/pdf-viewer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -31,7 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
 const updateBtn = document.getElementById('check-update-btn');
 if (updateBtn) {
     updateBtn.addEventListener('click', () => {
-        checkForUpdates();
+        // بيتحمّل وقت الضغط بس (مش في كل زيارة)
+        import('./javascript/core/update-checker.js').then(({ checkForUpdates }) => checkForUpdates());
     });
 }
 
@@ -153,8 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const preloadDone = localStorage.getItem('preload_done');
 
     if (!preloadDone) {
-        // أول زيارة: نشغل نظام preload فقط
-        initPreloadSystem();
+        // أول زيارة: نظهر شاشة الـ preload فوراً (من غير وميض شاشة اختيار الجروب)،
+        // وكود اللعبة والـ leaderboard بيتحمّل وقت الحاجة بس — مش للزوار القدام.
+        document.getElementById('preload-screen')?.classList.remove('hidden');
+        import('./javascript/features/preload-game.js')
+            .then(({ initPreloadSystem }) => initPreloadSystem())
+            .catch(err => console.error('❌ فشل تحميل شاشة الـ preload:', err));
     } else {
         // زيارة سابقة: نكمل التحميل الطبيعي
         autoLoadLastGroup();

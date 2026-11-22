@@ -2,7 +2,8 @@
 // utils.js - دوال مساعدة عامة (محدّث)
 // ============================================
 
-import { translationMap } from './config.js';
+import { translationMap, RAW_CONTENT_BASE, THUMBS_DIR } from './config.js';
+import { thumbIndex } from './state.js';
 
 // ------------------------------
 // تحويل النصوص والترجمة
@@ -184,5 +185,43 @@ export function resetBrowserZoom() {
     requestAnimationFrame(() => {
         // Step 2: فوراً نرجع للسماح بالزوم بدون أي delay
         viewport.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+    });
+}
+// ------------------------------
+// صور مصغّرة (thumbnails) — بتتولّد بـ .github/workflows/generate-thumbs.yml
+// ------------------------------
+// بترجّع رابط الـ thumbnail لو موجود في الشجرة، وإلا null (والمتصل يرجع للأصل).
+export function getThumbUrl(path) {
+    if (!path) return null;
+    const clean = String(path).replace(/^\.?\//, '');
+    const sha = thumbIndex.get(clean);
+    if (!sha) return null;
+    const encoded = `${THUMBS_DIR}/${clean}.webp`.split('/').map(encodeURIComponent).join('/');
+    return `${RAW_CONTENT_BASE}${encoded}?v=${sha.slice(0, 8)}`;
+}
+
+// ------------------------------
+// مسح الكاش — من خلال الـ Service Worker فقط
+// ------------------------------
+// sw.js هو المصدر الوحيد للكاش: مفيش حد تاني بيفتح أو بيمسح Cache Storage بنفسه.
+// بنبعتله أمر clearCache وبنستنى تأكيد CACHE_CLEARED (بحد أقصى timeoutMs).
+export async function clearAppCaches(timeoutMs = 4000) {
+    if (!('serviceWorker' in navigator)) return false;
+    const registration = await navigator.serviceWorker.getRegistration();
+    const worker = registration && (registration.active || registration.waiting || registration.installing);
+    if (!worker) return false; // مفيش SW = مفيش كاش تابع للتطبيق
+
+    return new Promise(resolve => {
+        const finish = (ok) => {
+            clearTimeout(timer);
+            navigator.serviceWorker.removeEventListener('message', onMessage);
+            resolve(ok);
+        };
+        const onMessage = (event) => {
+            if (event.data && event.data.type === 'CACHE_CLEARED') finish(true);
+        };
+        const timer = setTimeout(() => finish(false), timeoutMs);
+        navigator.serviceWorker.addEventListener('message', onMessage);
+        worker.postMessage({ action: 'clearCache' });
     });
 }

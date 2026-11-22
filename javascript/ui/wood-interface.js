@@ -2,8 +2,8 @@
 // wood-interface.js - واجهة عرض الملفات والمجلدات
 // ============================================
 
-import { RAW_CONTENT_BASE, NAV_STATE, SUBJECT_FOLDERS, REPO_NAME } from '../core/config.js';
-import { normalizeArabic, autoTranslate, getDisplayName, resetBrowserZoom } from '../core/utils.js';
+import { RAW_CONTENT_BASE, NAV_STATE, SUBJECT_FOLDERS, REPO_NAME, HIDDEN_FOLDERS } from '../core/config.js';
+import { normalizeArabic, autoTranslate, getDisplayName, resetBrowserZoom, getThumbUrl } from '../core/utils.js';
 import { pushNavigationState, goToWood, getCurrentNavigationState, navigationHistory } from '../core/navigation.js';
 import { smartOpen } from './pdf-viewer.js';
 import { globalFileTree, currentGroup, currentFolder, setCurrentFolder } from '../core/state.js';
@@ -35,30 +35,14 @@ const ALLOWED_EXTENSIONS = [
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
+const isSupportedFile = (path) => {
+    const ext = path.split('.').pop().toLowerCase();
+    return ALLOWED_EXTENSIONS.includes(ext);
+};
+
 const isImageFile = (path) => {
     const ext = path.split('.').pop().toLowerCase();
     return IMAGE_EXTENSIONS.includes(ext);
-};
-
-// ---------- ملفات مستثناة (مسار كامل أو اسم ملف بالأحرف الصغيرة) ----------
-const EXCLUDED_FILES = [
-    '×××××××××××.pdf'
-];
-
-const isExcludedFile = (path) => {
-    const normalizedPath = path.replace(/^\.\//, '').toLowerCase();
-    const fileName = path.split('/').pop().toLowerCase();
-
-    return EXCLUDED_FILES.some(excluded => {
-        const cleanExcluded = excluded.replace(/^\.\//, '').toLowerCase();
-        return normalizedPath === cleanExcluded || fileName === cleanExcluded;
-    });
-};
-
-const isSupportedFile = (path) => {
-    if (isExcludedFile(path)) return false;
-    const ext = path.split('.').pop().toLowerCase();
-    return ALLOWED_EXTENSIONS.includes(ext);
 };
 
 // ---------- معرض الصور (Lightbox) ----------
@@ -218,7 +202,7 @@ export async function updateWoodInterface() {
                     }
                 }
 
-                if (isDir && name !== 'image' && name !== 'groups' && name !== 'javascript') {
+                if (isDir && !HIDDEN_FOLDERS.includes(name) && !name.startsWith('.')) {
                     itemsMap.set(name, {
                         name: name,
                         type: 'dir',
@@ -397,7 +381,9 @@ export async function updateWoodInterface() {
                 if (isImage) {
                     // 🔥 تشفير المسار لمنع أخطاء 404 بسبب المسافات
                     const encodedPath = item.path.split('/').map(encodeURIComponent).join('/');
-                    const imageUrl = `${RAW_CONTENT_BASE}/${encodedPath}`;
+                    const imageUrl = `${RAW_CONTENT_BASE}${encodedPath}`;
+                    // ⚡ الكارت (780×200) بيعرض thumbnail صغير لو موجود، والأصل بيتحمّل في الـ lightbox بس
+                    const cardUrl = getThumbUrl(item.path) || imageUrl;
                     
                     const displayName = cleanName.length > 40 ? cleanName.substring(0, 37) + "..." : cleanName;
 
@@ -438,13 +424,18 @@ export async function updateWoodInterface() {
                     imgElement.setAttribute("width", width);
                     imgElement.setAttribute("height", height);
                     imgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
-                    imgElement.setAttribute("href", imageUrl);
+                    imgElement.setAttribute("href", cardUrl);
                     imgElement.setAttribute("clip-path", `url(#${imgClipId})`);
                     imgElement.style.pointerEvents = "none";
 
                     // التعامل مع حالة نجاح أو فشل التحميل
                     imgElement.addEventListener('load', () => loadingText.remove());
                     imgElement.addEventListener('error', () => {
+                        // الـ thumbnail مش متاح (اتمسح/لسه متولّدش)؟ نجرّب الأصل قبل ما نستسلم
+                        if (cardUrl !== imageUrl && imgElement.getAttribute("href") === cardUrl) {
+                            imgElement.setAttribute("href", imageUrl);
+                            return;
+                        }
                         loadingText.textContent = "⚠️ الصورة غير متاحة";
                         loadingText.setAttribute("fill", "#ff4444");
                         imgElement.remove();

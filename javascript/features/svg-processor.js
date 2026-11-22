@@ -6,8 +6,12 @@
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
 import { interactionEnabled } from '../ui/wood-interface.js';
-import { getCumulativeTranslate, getGroupImage, wrapText, addShownError, hasShownError } from '../core/utils.js';
+import { getCumulativeTranslate, getGroupImage, wrapText } from '../core/utils.js';
 import { smartOpen } from '../ui/pdf-viewer.js';
+
+// آخر مرة اتفتح فيها ملف (لمنع الفتح المزدوج touchend + click)
+let lastOpenAt = 0;
+const OPEN_DEBOUNCE_MS = 700;
 
 // حالة التكبير الحالية
 export let activeState = {
@@ -239,24 +243,18 @@ export function processRect(r) {
         r.addEventListener('mouseout', cleanupHover);
     }
 
-    r.onclick = async () => {
-        if (href && href !== '#') {
-            const fileName = href.split('/').pop();
-            try {
-                const response = await fetch(href, { method: 'HEAD', mode: 'cors', cache: 'no-cache' });
-                if (!response.ok) {
-                    if (!hasShownError(href)) {
-                        alert(`❌ الملف "${fileName}" غير موجود`);
-                        addShownError(href);
-                    }
-                    return;
-                }
-                smartOpen({ path: href.replace(RAW_CONTENT_BASE, '') });
-            } catch (error) {
-                smartOpen({ path: href.replace(RAW_CONTENT_BASE, '') });
-            }
-        }
+    // 🔒 منع فتح الملف مرتين: على الموبايل اللمسة الواحدة بتولّد touchend ثم click.
+    // ⚡ ومفيش HEAD request قبل الفتح (كان بيضيف رحلة شبكة كاملة لكل ضغطة) — لو الملف مش موجود
+    //    رسالة "غير موجود" بتظهر في نافذة المعاينة نفسها.
+    const openFile = () => {
+        if (!href || href === '#') return;
+        const now = Date.now();
+        if (now - lastOpenAt < OPEN_DEBOUNCE_MS) return;
+        lastOpenAt = now;
+        smartOpen({ path: href.replace(RAW_CONTENT_BASE, '') });
     };
+
+    r.onclick = openFile;
 
     const scrollContainer = document.getElementById('scroll-container');
     if (scrollContainer) {
@@ -268,27 +266,11 @@ export function processRect(r) {
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
             startHover.call(this);
         });
-        r.addEventListener('touchend', async function (e) {
+        r.addEventListener('touchend', function (e) {
             if (!interactionEnabled) return;
             if (Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) < 10 &&
                 (Date.now() - activeState.touchStartTime) < TAP_THRESHOLD_MS) {
-                if (href && href !== '#') {
-                    const fileName = href.split('/').pop();
-                    try {
-                        const response = await fetch(href, { method: 'HEAD', mode: 'cors', cache: 'no-cache' });
-                        if (!response.ok) {
-                            if (!hasShownError(href)) {
-                                alert(`❌ الملف "${fileName}" غير موجود`);
-                                addShownError(href);
-                            }
-                            cleanupHover();
-                            return;
-                        }
-                        smartOpen({ path: href.replace(RAW_CONTENT_BASE, '') });
-                    } catch (error) {
-                        smartOpen({ path: href.replace(RAW_CONTENT_BASE, '') });
-                    }
-                }
+                openFile();
             }
             cleanupHover();
         });
