@@ -1,40 +1,26 @@
 /* ========================================
-   tracker.js - نظام التتبع المُحسّن والموسّع
-   إصدار 2.0 - جمع بيانات شاملة
+   tracker.js - نظام التتبع
    ======================================== */
 
 /**
- * توليد معرف فريد للزائر وحفظه
+ * توليد كود HEX وحفظه (مستقل هنا لأن الملف ليس Module)
  */
-function generateUniqueID() {
-    const existingID = localStorage.getItem('visitor_id');
-    if (existingID) return existingID;
-
-    const usedIDs = JSON.parse(localStorage.getItem('all_used_ids') || '[]');
-    let newID;
-    let attempts = 0;
-    const maxAttempts = 1000;
-
-    do {
-        const randomNumber = Math.floor(1000 + Math.random() * 9000);
-        newID = 'ID-' + randomNumber;
-        attempts++;
-        if (attempts >= maxAttempts) {
-            newID = 'ID-' + Date.now().toString().slice(-4);
-            break;
-        }
-    } while (usedIDs.includes(newID));
-
-    usedIDs.push(newID);
-    localStorage.setItem('all_used_ids', JSON.stringify(usedIDs));
-    localStorage.setItem('visitor_id', newID);
-
-    console.log(`✅ Unique ID Generated: ${newID}`);
-    return newID;
+function getOrGenerateStaticHexId() {
+    let hex = localStorage.getItem('static_hex_id');
+    if (!hex) {
+        const array = new Uint8Array(4);
+        window.crypto.getRandomValues(array);
+        hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+        localStorage.setItem('static_hex_id', hex);
+    }
+    return hex;
 }
 
+// التأكد من وجوده عند التحميل
+getOrGenerateStaticHexId();
+
 /**
- * كائن التتبع الرئيسي المُحسّن
+ * كائن التتبع الرئيسي
  */
 const UserTracker = {
     activities: [],
@@ -139,7 +125,7 @@ const UserTracker = {
 
     getDisplayName() {
         const name = localStorage.getItem('user_real_name');
-        return (name && name !== 'زائر') ? name : (localStorage.getItem('visitor_id') || 'Unknown');
+        return (name && name !== 'زائر') ? name : (localStorage.getItem('static_hex_id') || 'Unknown');
     },
 
     getDeviceType() {
@@ -171,7 +157,7 @@ const UserTracker = {
     },
 
     getSessionDuration() {
-        return Math.floor((Date.now() - this.sessionStart) / 1000); // بالثواني
+        return Math.floor((Date.now() - this.sessionStart) / 1000);
     },
 
     logActivity(type, details = {}) {
@@ -196,9 +182,6 @@ const UserTracker = {
         };
     },
 
-    /**
-     * إرسال البيانات المُحسّنة مع معلومات إضافية
-     */
     async send(action, isFinal = false) {
         try {
             if (!this.deviceFingerprint) await this.generateFingerprint();
@@ -208,60 +191,63 @@ const UserTracker = {
 
             const data = new FormData();
             
+            // ✅ إرسال الاسمين (الديناميكي والثابت)
+            const staticHex = getOrGenerateStaticHexId();
+            const dynamicName = localStorage.getItem('user_real_name') || 'لا يوجد (يستخدم HEX)';
+
             // معلومات أساسية
             data.append("01-Device_ID", this.deviceFingerprint);
-            data.append("02-User_Name", this.getDisplayName());
-            data.append("03-Visitor_ID", localStorage.getItem('visitor_id') || 'Unknown');
-            data.append("04-Group", localStorage.getItem('selectedGroup') || 'N/A');
-            data.append("05-Action", action);
+            data.append("02-User_Name", dynamicName);           // الاسم الديناميكي
+            data.append("03-Static_HEX_ID", staticHex);         // كود HEX الثابت
+            data.append("04-Visitor_ID", staticHex);            // للتوافق مع الكود القديم
+            data.append("05-Group", localStorage.getItem('selectedGroup') || 'N/A');
+            data.append("06-Action", action);
             
             // معلومات الجهاز
-            data.append("06-Device_Type", this.getDeviceType());
-            data.append("07-Browser", this.getBrowserInfo());
-            data.append("08-OS", this.getOSInfo());
-            data.append("09-Screen_Size", `${screen.width}x${screen.height}`);
-            data.append("10-Pixel_Ratio", window.devicePixelRatio.toString());
+            data.append("07-Device_Type", this.getDeviceType());
+            data.append("08-Browser", this.getBrowserInfo());
+            data.append("09-OS", this.getOSInfo());
+            data.append("10-Screen_Size", `${screen.width}x${screen.height}`);
+            data.append("11-Pixel_Ratio", window.devicePixelRatio.toString());
             
             // معلومات الاتصال
             const connInfo = this.getConnectionInfo();
-            data.append("11-Connection_Type", typeof connInfo === 'object' ? connInfo.type : connInfo);
-            data.append("12-Network_Speed", typeof connInfo === 'object' ? connInfo.downlink + ' Mbps' : 'N/A');
+            data.append("12-Connection_Type", typeof connInfo === 'object' ? connInfo.type : connInfo);
+            data.append("13-Network_Speed", typeof connInfo === 'object' ? connInfo.downlink + ' Mbps' : 'N/A');
             
             // معلومات البطارية
-            data.append("13-Battery_Charging", battery.charging.toString());
-            data.append("14-Battery_Level", battery.level.toString());
+            data.append("14-Battery_Charging", battery.charging.toString());
+            data.append("15-Battery_Level", battery.level.toString());
             
             // معلومات الجلسة
-            data.append("15-Session_Duration", this.getSessionDuration() + 's');
-            data.append("16-Total_Clicks", this.clicksCount.toString());
-            data.append("17-Scroll_Depth", this.scrollDepth + '%');
-            data.append("18-Files_Opened_Count", this.filesOpened.length.toString());
+            data.append("16-Session_Duration", this.getSessionDuration() + 's');
+            data.append("17-Total_Clicks", this.clicksCount.toString());
+            data.append("18-Scroll_Depth", this.scrollDepth + '%');
+            data.append("19-Files_Opened_Count", this.filesOpened.length.toString());
             
             // معلومات اللعبة
-            data.append("19-Game_Personal_Best", gameStats.personalBest);
-            data.append("20-Game_Total_Played", gameStats.gamesPlayed);
+            data.append("20-Game_Personal_Best", gameStats.personalBest);
+            data.append("21-Game_Total_Played", gameStats.gamesPlayed);
             
             // معلومات إضافية
-            data.append("21-Language", navigator.language);
-            data.append("22-Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone);
-            data.append("23-Online_Status", navigator.onLine ? 'Online' : 'Offline');
-            data.append("24-Referrer", document.referrer || 'Direct');
-            data.append("25-Page_URL", window.location.href);
+            data.append("22-Language", navigator.language);
+            data.append("23-Timezone", Intl.DateTimeFormat().resolvedOptions().timeZone);
+            data.append("24-Online_Status", navigator.onLine ? 'Online' : 'Offline');
+            data.append("25-Referrer", document.referrer || 'Direct');
+            data.append("26-Page_URL", window.location.href);
 
-            // الأنشطة (إذا كانت نهائية)
             if (isFinal && this.activities.length > 0) {
-                data.append("26-Activities", JSON.stringify(this.activities));
-                data.append("27-Last_Files_Opened", JSON.stringify(this.filesOpened.slice(-10))); // آخر 10 ملفات
+                data.append("27-Activities", JSON.stringify(this.activities));
+                data.append("28-Last_Files_Opened", JSON.stringify(this.filesOpened.slice(-10)));
             }
 
-            data.append("28-Timestamp", new Date().toLocaleString('ar-EG'));
+            data.append("29-Timestamp", new Date().toLocaleString('ar-EG'));
 
-            const endpoint = "https://formspree.io/f/xzdpqrnj";
+            // ✅ تم تحديث الـ Endpoint الجديد هنا
+            const endpoint = "https://formspree.io/f/xgakpwdj";
 
-            // محاولة الإرسال عبر sendBeacon
             const success = navigator.sendBeacon(endpoint, data);
 
-            // إذا فشل sendBeacon نستخدم fetch
             if (!success) {
                 fetch(endpoint, { 
                     method: 'POST', 
@@ -271,7 +257,7 @@ const UserTracker = {
                 }).catch(() => {/* فشل صامت */});
             }
 
-            console.log(`📤 Tracked: ${action} | Files: ${this.filesOpened.length} | Clicks: ${this.clicksCount} | Duration: ${this.getSessionDuration()}s`);
+            console.log(`📤 Tracked: ${action} | HEX: ${staticHex} | Files: ${this.filesOpened.length}`);
         } catch (e) {
             console.warn("Tracker: Send failed silently.");
         }
@@ -293,15 +279,11 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// تهيئة النظام عند التحميل
-generateUniqueID();
-
 window.addEventListener('load', async () => {
     await UserTracker.generateFingerprint();
     UserTracker.send("دخول الموقع");
 });
 
-// التتبع الدوري (كل 0.5 دقائق)
 setInterval(() => {
     if (UserTracker.activities.length > 0) {
         UserTracker.send("تحديث دوري", true);
@@ -309,7 +291,6 @@ setInterval(() => {
     }
 }, 30000);
 
-// التتبع عند مغادرة الصفحة أو إخفائها
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden' && UserTracker.activities.length > 0) {
         UserTracker.send("تقرير النشاط قبل الخروج", true);
@@ -317,7 +298,6 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
-// دوال مساعدة عالمية للتتبع
 window.trackSearch = (query) => {
     UserTracker.logActivity("بحث", { query });
 };
@@ -340,5 +320,4 @@ window.trackGroupChange = (newGroup) => {
     UserTracker.logActivity("تغيير المجموعة", { group: newGroup });
 };
 
-console.log('%c🔒 Enhanced Device Fingerprint System Active v2.0', 'color: #00ff00; font-weight: bold; font-size: 14px;');
-console.log('%c📊 Tracking: Clicks, Scroll, Files, Games, Session Duration', 'color: #0088ff; font-size: 12px;');
+console.log('%c🔒 Device Fingerprint & HEX System Active', 'color: #00ff00; font-weight: bold; font-size: 14px;');
