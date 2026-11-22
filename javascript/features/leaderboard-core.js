@@ -1,19 +1,18 @@
 // ============================================
-// leaderboard-core.js - إدارة القائمة والرقم القياسي
-// الإصدار المدمج: البيانات مكتوبة مباشرة هنا (بدون JSON)
+// leaderboard-core.js
 // ============================================
 
 import { FORMSPREE_URL } from '../core/config.js';
 import { getPlayerName, getDeviceId } from '../core/utils.js';
 
-// ─── ثوابت ─────────────────────────────────
+// ─── ثوابت ──────────────────────
 export const LEADERBOARD_CACHE_KEY = 'leaderboard_top5_cache';
 export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   // 5 دقائق
 export const MAX_CLOUD_SCORES      = 5;
 
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════
 // 🏆 قائمة المتصدرين (قم بتعديل هذه القائمة يدوياً كل فترة)
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════
 const MANUAL_LEADERBOARD = [
     { name: "جورج رضا", score: 50 },
     { name: "محى", score: 0 },
@@ -21,7 +20,7 @@ const MANUAL_LEADERBOARD = [
     { name: "عبدالرحمن", score: 0 },
     { name: "كيرو", score: 0 }
 ];
-// ═══════════════════════════════════════════════════════════
+//══════════════════════════════
 
 // ─── كائن إدارة الكاش المحلي ──────────────
 export const LeaderboardCache = {
@@ -75,7 +74,7 @@ export const PersonalRecord = {
     }
 };
 
-// ─── دوال جلب النتائج ──────────────────────
+// ─── دوال جلب النتائج ─────────────────
 
 // ✅ نرجع القائمة المدمجة مباشرة
 export async function fetchAllCloudScores() {
@@ -108,7 +107,7 @@ export async function pruneCloudScores() {
     return Promise.resolve();
 }
 
-// ─── إرسال النتيجة الجديدة ──────────────────
+// ─── إرسال النتيجة الجديدة ───────────────
 export async function sendScoreToServer(playerName, playerScore, deviceId) {
     try {
         console.log('📤 إرسال النتيجة إلى Formspree...');
