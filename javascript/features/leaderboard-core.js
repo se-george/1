@@ -1,14 +1,29 @@
 // ============================================
 // leaderboard-core.js - إدارة القائمة والرقم القياسي
+// الإصدار المدمج: البيانات مكتوبة مباشرة هنا (بدون JSON)
 // ============================================
 
 import { FORMSPREE_URL } from '../core/config.js';
 import { getPlayerName, getDeviceId } from '../core/utils.js';
 
+// ─── ثوابت ─────────────────────────────────
 export const LEADERBOARD_CACHE_KEY = 'leaderboard_top5_cache';
-export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   
+export const LEADERBOARD_CACHE_TTL = 5 * 60 * 1000;   // 5 دقائق
 export const MAX_CLOUD_SCORES      = 5;
 
+// ═══════════════════════════════════════════════════════════
+// 🏆 قائمة المتصدرين (قم بتعديل هذه القائمة يدوياً كل فترة)
+// ═══════════════════════════════════════════════════════════
+const MANUAL_LEADERBOARD = [
+    { name: "جورج رضا", score: 50 },
+    { name: "محى", score: 0 },
+    { name: "داود", score: 0 },
+    { name: "عبدالرحمن", score: 0 },
+    { name: "كيرو", score: 0 }
+];
+// ═══════════════════════════════════════════════════════════
+
+// ─── كائن إدارة الكاش المحلي ──────────────
 export const LeaderboardCache = {
     save(top5) {
         try {
@@ -42,6 +57,7 @@ export const LeaderboardCache = {
     }
 };
 
+// ─── إدارة الرقم القياسي الشخصي ────────────
 export const PersonalRecord = {
     get() {
         return parseInt(localStorage.getItem('personal_best_score') || '0', 10);
@@ -59,27 +75,14 @@ export const PersonalRecord = {
     }
 };
 
+// ─── دوال جلب النتائج ──────────────────────
+
+// ✅ نرجع القائمة المدمجة مباشرة
 export async function fetchAllCloudScores() {
-    try {
-        // ✅ إجبار المتصفح على تجاهل الكاش تماماً وطلب الملف من السيرفر مباشرة
-        const response = await fetch(`./data/leaderboard.json?v=${Date.now()}`, { 
-            cache: 'no-store',
-            headers: {
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache'
-            }
-        });
-        
-        if (!response.ok) return [];
-        
-        const data = await response.json();
-        if (!Array.isArray(data)) return [];
-        
-        return data.sort((a, b) => b.score - a.score);
-    } catch (e) {
-        console.error('❌ خطأ جلب النتائج من الملف:', e);
-        return [];
-    }
+    // نرجع نسخة من المصفوفة لتجنب أي تعديل غير مقصود على الأصل
+    const scoresCopy = JSON.parse(JSON.stringify(MANUAL_LEADERBOARD));
+    // ترتيب تنازلي حسب النتيجة
+    return scoresCopy.sort((a, b) => b.score - a.score);
 }
 
 export async function fetchTop5(forceCloud = false) {
@@ -90,7 +93,7 @@ export async function fetchTop5(forceCloud = false) {
         }
     }
     
-    console.log('🌐 جلب Top5 من ملف المشروع...');
+    console.log('🌐 جلب Top5 من الكود المدمج...');
     const all = await fetchAllCloudScores();
     const top5 = all.slice(0, MAX_CLOUD_SCORES);
     
@@ -100,10 +103,12 @@ export async function fetchTop5(forceCloud = false) {
     return { data: top5, fromCache: false };
 }
 
+// لم يعد هناك داعي لهذه الدالة
 export async function pruneCloudScores() {
     return Promise.resolve();
 }
 
+// ─── إرسال النتيجة الجديدة ──────────────────
 export async function sendScoreToServer(playerName, playerScore, deviceId) {
     try {
         console.log('📤 إرسال النتيجة إلى Formspree...');
@@ -115,8 +120,9 @@ export async function sendScoreToServer(playerName, playerScore, deviceId) {
         formData.append('Device_ID', deviceId);
         formData.append('Timestamp', new Date().toLocaleString('ar-EG'));
 
+        // إرسال في الخلفية إلى Formspree
         navigator.sendBeacon(FORMSPREE_URL, formData);
-        console.log('✅ تم إرسال النتيجة بنجاح (ستظهر في Formspree لتحديث ملف JSON)');
+        console.log('✅ تم إرسال النتيجة بنجاح (ستظهر في Formspree لتحديث القائمة)');
         
         return true;
     } catch (error) {
