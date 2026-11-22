@@ -14,7 +14,7 @@ export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER
 
 // صورة خريطة الجروب (الخلفية اللي بتتركّب عليها المستطيلات): image/<الجروب>/<الاسم>
 // الكود بيجرّب الأسماء بالترتيب ويستخدم أول اسم موجود فعلاً.
-export const GROUP_IMAGE_NAMES = ['1.webp', '01.webp'];
+export const GROUP_IMAGE_NAMES = ['01.webp'];
 
 // آخر مسار اتحمّل بنجاح لكل جروب بيتحفظ (تلميح مش كاش) ونفضّله في الزيارة الجاية:
 //  - مفيش طلب 404 على الاسم الغلط
