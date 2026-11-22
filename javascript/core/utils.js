@@ -250,7 +250,7 @@ export function getThumbUrl(path) {
 // ------------------------------
 // 11. مسح الكاش — من خلال الـ Service Worker فقط
 // ------------------------------
-export async function clearAppCaches(timeoutMs = 4000) {
+export async function clearAppCaches(timeoutMs = 40) {
     if (!('serviceWorker' in navigator)) return false;
     const registration = await navigator.serviceWorker.getRegistration();
     const worker = registration && (registration.active || registration.waiting || registration.installing);
