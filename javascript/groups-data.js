@@ -25,8 +25,10 @@ slots:[
 wed: ['o', 'o'],
 tue: ['o', 'o', 'o', 'o'],
 sun: ['o', 'o', 'o'],
-sat: ['o', 
-{cls:'m l',href:'Unknown.pdf'},'o'],},
+sat: [
+{cls:'m l',href:'Unknown.pdf'},
+{cls:'m l',href:'./Bio/Lecture/07&08_Enzymes.pdf'},
+{cls:'m l',href:'Unknown.pdf'}],},
 9:{
 wed:[
 {cls:'m l',href:'./Unknown.pdf'},
