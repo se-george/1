@@ -1,4 +1,4 @@
-const CACHE_NAME = 'semester-1-cache-v86';
+const CACHE_NAME = 'semester-1-cache-v87';
 
 // 🆕 رابط شجرة الملفات (يُستخدم للـ pre-cache ولمطابقة الـ cache)
 const TREE_API_URL = 'https://api.github.com/repos/se-george/1/git/trees/main?recursive=1';
