@@ -41,6 +41,7 @@ const urlsToCache = [
    './javascript/features/preload-game.js',
    './javascript/features/preload.js',
    './javascript/features/svg-processor.js',
+   './data/leaderboard.json',
    './image/0.webp',
    './image/wood.webp',
 ];
