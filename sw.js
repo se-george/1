@@ -2,9 +2,9 @@
 // sw.js - Service Worker
 // ============================================================
 const CACHE_PREFIX = 'semester-1-';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v8';   
+const CACHE_NAME = CACHE_PREFIX + 'cache-v9';   
 const CONTENT_CACHE = CACHE_PREFIX + 'content';  
-const LEGACY_CACHES = ['semester-3-cache-v5'];   
+const LEGACY_CACHES = ['semester-3-cache-v6'];   
 
 const RAW_HOST = 'raw.githubusercontent.com';    
 const CDN_HOST = 'cdnjs.cloudflare.com';         
