@@ -433,7 +433,7 @@ async function checkForUpdates() {
     if (lastCheck && (now - parseInt(lastCheck)) < 300000) return;
 
     const response = await fetch(
-      'https://api.github.com/repos/MUE24Med/s3/commits/main',
+      'https://api.github.com/repos/se-george/1/commits/main',
       { cache: 'no-store', headers: { 'Accept': 'application/vnd.github.v3+json' } }
     );
     if (!response.ok) return;
