@@ -15,7 +15,7 @@ let loadingProgress = {
 };
 
 // ---------- شجرة الملفات ----------
-const TREE_TIMEOUT_MS = 10000;
+const TREE_TIMEOUT_MS = 1000;
 let treePromise = null;
 
 try {
