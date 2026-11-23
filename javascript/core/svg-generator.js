@@ -3,12 +3,6 @@ import { groupImagePaths } from './config.js';
 
 const DEFAULT_SLOT_CLASS = 'o';
 
-/**
- * استخراج (cls, href) من أي شكل ممكن للـ item:
- *  - null/undefined      → cls = 'o' افتراضي
- *  - 'o' / 'x' (string)  → cls = نفس الـ string
- *  - { cls?, href? }     → cls = item.cls أو 'o' لو مش موجود
- */
 function getAttrs(item) {
   if (item == null) return { cls: DEFAULT_SLOT_CLASS, href: '' };
   if (typeof item === 'string') return { cls: item || DEFAULT_SLOT_CLASS, href: '' };
