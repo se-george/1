@@ -15,18 +15,15 @@ let loadingProgress = {
 };
 
 // ---------- شجرة الملفات ----------
-// ✅ كاش الشجرة في مكان واحد بس: الـ Service Worker (sw.js) — بيجيب الأحدث من الشبكة، ولو GitHub
-//    بطيء/محجوب (403) أو أوفلاين بيرجّع آخر نسخة سليمة. مفيش نسخة localStorage تانية.
-const TREE_TIMEOUT_MS = 100;
+const TREE_TIMEOUT_MS = 10000;
 let treePromise = null;
 
-// نسخة localStorage القديمة (كانت توصل 4MB) — بنمسحها لو لسه موجودة
 try {
     localStorage.removeItem('cached_file_tree');
     localStorage.removeItem('cached_file_tree_time');
 } catch (e) { /* التخزين مقفول */ }
 
-// لو في طلب شغّال بنرجّع نفس الـ Promise (الصور بتتحمّل بالتوازي معاه مش بعده)
+// لو في طلب شغّال بنرجّع نفس الـ Promise
 export function fetchGlobalTree() {
     if (globalFileTree.length > 0) return Promise.resolve();
     if (!treePromise) {
@@ -35,12 +32,19 @@ export function fetchGlobalTree() {
     return treePromise;
 }
 
+// ✅ دالة جديدة: تجبر النظام على إعادة جلب الشجرة (تتخطى الكاش الداخلي)
+export function refreshGlobalTree() {
+    treePromise = null; // تصفير البروميس لكي يبدأ طلب جديد
+    setGlobalFileTree([]); // تصفير المصفوفة القديمة
+    return loadGlobalTree();
+}
+
 async function loadGlobalTree() {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TREE_TIMEOUT_MS);
 
     try {
-        const response = await fetch(TREE_API_URL, { signal: controller.signal });
+        const response = await fetch(TREE_API_URL, { signal: controller.signal, cache: 'no-store' });
         if (!response.ok) throw new Error(`API status ${response.status}`);
 
         const data = await response.json();
@@ -50,12 +54,10 @@ async function loadGlobalTree() {
             return;
         }
     } catch (err) {
-        console.warn("⚠️ فشل جلب الشجرة (ومفيش نسخة محفوظة في الـ SW):", err);
+        console.warn("⚠️ فشل جلب الشجرة:", err);
     } finally {
         clearTimeout(timer);
     }
-
-    console.warn("⚠️ لا توجد شجرة ملفات متاحة (أول زيارة أوفلاين؟)");
 }
 
 // ---------- حفظ وتحميل المجموعة ----------
@@ -105,7 +107,6 @@ export function showLoadingScreen(groupLetter) {
 
     document.querySelectorAll('.light-bulb').forEach(bulb => bulb.classList.remove('on'));
     loadingOverlay.classList.add('active');
-    console.log(`🔦 شاشة التحميل نشطة: Group ${groupLetter}`);
 
     import('../ui/wood-interface.js').then(({ updateWelcomeMessages }) => {
         updateWelcomeMessages();
@@ -122,16 +123,12 @@ export function hideLoadingScreen() {
     
     const textElement = document.getElementById('group-text-display');
     if (textElement) textElement.style.display = 'none';
-    
-    console.log('✅ تم إخفاء شاشة التحميل');
 }
 
 export function updateLoadProgress() {
     if (loadingProgress.totalSteps === 0) return;
-    
     const progress = (loadingProgress.completedSteps / loadingProgress.totalSteps) * 100;
     loadingProgress.currentPercentage = Math.min(100, Math.round(progress));
-    
     const percentage = loadingProgress.currentPercentage;
     if (percentage >= 20) document.getElementById('bulb-4')?.classList.add('on');
     if (percentage >= 40) document.getElementById('bulb-3')?.classList.add('on');
@@ -148,7 +145,6 @@ export async function loadGroupSVG(groupLetter) {
     const group = GROUP_DATA[groupLetter];
 
     if (!group || !group.template) {
-        console.warn(`⚠️ المجموعة ${groupLetter} مش جاهزة بعد`);
         groupContainer.innerHTML = `
             <g transform="translate(0,0)">
                 <rect x="0" y="0" width="1024" height="2454" fill="#111"/>
@@ -164,16 +160,15 @@ export async function loadGroupSVG(groupLetter) {
 
     try {
         groupContainer.innerHTML = generateGroupSVG(groupLetter, group);
-        console.log(`✅ توليد ${groupLetter}: ${groupContainer.children.length} عنصر`);
 
         const injectedImages = groupContainer.querySelectorAll('image[data-src]');
-imageUrlsToLoad = ['image/wood.webp'];
-injectedImages.forEach(img => {
-    const src = img.getAttribute('data-src');
-    if (src && !imageUrlsToLoad.includes(src)) {
-        imageUrlsToLoad.push(src);
-    }
-});
+        imageUrlsToLoad = ['image/wood.webp'];
+        injectedImages.forEach(img => {
+            const src = img.getAttribute('data-src');
+            if (src && !imageUrlsToLoad.includes(src)) {
+                imageUrlsToLoad.push(src);
+            }
+        });
 
         loadingProgress.totalSteps = 1 + imageUrlsToLoad.length;
         loadingProgress.completedSteps = 1;
@@ -188,8 +183,6 @@ injectedImages.forEach(img => {
 
 // ---------- تهيئة المجموعة ----------
 export async function initializeGroup(groupLetter) {
-    console.log(`🚀 تهيئة المجموعة: ${groupLetter}`);
-    
     saveSelectedGroup(groupLetter);
 
     const toggleContainer = document.getElementById('js-toggle-container');
@@ -209,8 +202,6 @@ export async function initializeGroup(groupLetter) {
     pushNavigationState(NAV_STATE.WOOD_VIEW, { group: groupLetter });
 
     showLoadingScreen(groupLetter);
-    // ⚡ الشجرة بتتجاب بالتوازي (finishLoading بيستناها قبل بناء قائمة الملفات)
-    //    والصور مبقتش بتستنى GitHub API قبل ما تبدأ تتحمّل
     fetchGlobalTree();
     await loadGroupSVG(groupLetter);
 
@@ -219,8 +210,6 @@ export async function initializeGroup(groupLetter) {
 }
 
 // ---------- رسالة واضحة لما صورة الخريطة تتعذّر ----------
-// بدل ما الصورة تختفي بصمت (ونفضل ندوّر على السبب)، بنكتب على الخريطة نفسها
-// المسارات اللي اتجرّبت فعلاً.
 function showMissingImageNotice(imageEl, triedPaths) {
     const parent = imageEl.parentNode;
     if (!parent || parent.querySelector('.map-image-missing')) return;
@@ -262,7 +251,6 @@ export async function loadImages() {
     const mainSvg = document.getElementById('main-svg');
     if (!mainSvg) return;
 
-    console.log(`🖼️ بدء تحميل ${imageUrlsToLoad.length} صورة...`);
     if (imageUrlsToLoad.length === 0) {
         finishLoading();
         return;
@@ -287,7 +275,6 @@ export async function loadImages() {
                         si.removeAttribute('data-src');
                     }
                 });
-                console.log(`✅ تم تحديث الصورة: ${url.split('/').pop()}`);
                 if (currentGroup && url.startsWith(`image/${currentGroup}/`)) rememberGroupImage(currentGroup, url);
 
                 loadingProgress.completedSteps++;
@@ -295,8 +282,6 @@ export async function loadImages() {
                 resolve();
             };
 
-            // لو الاسم الأساسي مش موجود نجرّب البدائل (data-fallbacks)، ولو كلهم مفقودين
-            // نوضّح السبب على الخريطة بدل ما الصورة تختفي بصمت
             img.onerror = function () {
                 const owners = [...mainSvg.querySelectorAll('image')]
                     .filter(si => si.getAttribute('data-src') === url);
@@ -305,7 +290,6 @@ export async function loadImages() {
                     .split(',').filter(Boolean);
                 if (fallbacks.length) {
                     const [next, ...rest] = fallbacks;
-                    console.warn(`↪️ ${url} غير موجودة — أجرّب ${next}`);
                     owners.forEach(si => {
                         si.setAttribute('data-src', next);
                         si.setAttribute('data-fallbacks', rest.join(','));
@@ -324,8 +308,6 @@ export async function loadImages() {
                     si.removeAttribute('data-fallbacks');
                     if (si.closest('#group-specific-content')) showMissingImageNotice(si, tried);
                 });
-                if (owners.length) console.error(`❌ تعذر تحميل الصورة. المحاولات: ${tried.join(' ← ')}`);
-                else console.warn(`⚠️ ملف غير مستخدم في الصفحة ومفقود: ${url}`);
                 
                 loadingProgress.completedSteps++;
                 updateLoadProgress();
@@ -361,12 +343,11 @@ async function finishLoading() {
     loadingProgress.completedSteps = loadingProgress.totalSteps;
     loadingProgress.currentPercentage = 100;
     updateLoadProgress();
-    console.log('✅ التحميل اكتمل 100% - جاري عرض المحتوى...');
 
     const { scan } = await import('../features/svg-processor.js');
     const { updateWoodInterface } = await import('../ui/wood-interface.js');
 
-    await fetchGlobalTree(); // اتجابت بالتوازي مع الصور — هنا بس بنتأكد إنها وصلت (أو فشلت)
+    await fetchGlobalTree(); 
 
     updateDynamicSizes();
     scan();
@@ -381,7 +362,6 @@ async function finishLoading() {
     }
 
     hideLoadingScreen();
-    console.log('🎉 اكتمل التحميل والعرض');
 }
 
 // ---------- تحديث أحجام SVG ديناميكياً ----------
@@ -421,5 +401,4 @@ export function updateDynamicSizes() {
     });
 
     mainSvg.setAttribute('viewBox', `0 0 ${maxX} ${maxY}`);
-    console.log(`✅ viewBox: 0 0 ${maxX} ${maxY}`);
 }
