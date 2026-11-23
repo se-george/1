@@ -7,7 +7,7 @@ import { interactionEnabled } from '../ui/wood-interface.js';
 import { getCumulativeTranslate, getGroupImage, wrapText } from '../core/utils.js';
 import { smartOpen } from '../ui/pdf-viewer.js';
 
-// آخر مرة اتفتح فيها ملف (لمنع الفتح المزدوج)
+// آخر مرة اتفتح فيها ملف (لمنع الفتح المزدوج touchend + click)
 let lastOpenAt = 0;
 const OPEN_DEBOUNCE_MS = 700;
 
@@ -60,9 +60,12 @@ export function startHover() {
     const absY = (parseFloat(rect.getAttribute('y')) || 0) + cum.y;
     const centerX = absX + rW / 2;
 
+    // ✅ التوازن بين المستطيل المكبّر والنص
     const scaleFactor = 1.45;
     const scaledW = rW * scaleFactor;
-    const hoveredY = absY - ((rH * (scaleFactor - 1)) / 2);
+    const scaledH = rH * scaleFactor;
+    const yOffset = (rH * (scaleFactor - 1)) / 2;
+    const hoveredY = absY - yOffset;
 
     const rectX = parseFloat(rect.getAttribute('x')) || 0;
     const rectY = parseFloat(rect.getAttribute('y')) || 0;
@@ -105,7 +108,7 @@ export function startHover() {
         activeState.zoomPart = zPart;
     }
 
-    // ── النص المكبّر ──
+    // ── النص المكبّر (8x زي ما هو) ──
     let bText = rect.parentNode.querySelector(`.rect-label[data-original-for='${rect.dataset.href}']`);
     if (bText) {
         bText.style.opacity = '0';
@@ -123,30 +126,45 @@ export function startHover() {
         zText.style.fontWeight = 'bold';
         zText.style.pointerEvents = 'none';
         zText.style.fontFamily = "'Segoe UI', Tahoma, sans-serif";
+        // ✅ 8x زي ما هو - مش هيتم تغييره
         zText.style.fontSize = (parseFloat(bText.style.fontSize || 10) * 8) + 'px';
 
         mainSvg.appendChild(zText);
         const bbox = zText.getBBox();
 
-        const paddingX = Math.max(bbox.width * 0.20, 60);   
-        const paddingY = Math.max(bbox.height * 0.35, 30);  
+        // ══════════════════════════════════════════════════════
+        // ✅ الإطار الجديد: متناسب مع النص 8x + المستطيل المكبّر
+        // ══════════════════════════════════════════════════════
 
-        const zBgW = Math.max(bbox.width + paddingX * 2, scaledW + 40);
+        // padding يتحرك مع حجم النص (8x = محتاج padding كبير)
+        const paddingX = Math.max(bbox.width * 0.20, 60);   // 20% من عرض النص أو 60px (الأكبر)
+        const paddingY = Math.max(bbox.height * 0.35, 30);  // 35% من ارتفاع النص أو 30px (الأكبر)
+
+        // عرض الإطار = (عرض النص + padding) أو (عرض المستطيل المكبّر + هامش) - الأكبر
+        const zBgW = Math.max(
+            bbox.width + paddingX * 2,
+            scaledW + 40   // 40px هامش جانبي على الأقل
+        );
+
+        // ارتفاع الإطار = ارتفاع النص + padding
         const zBgH = bbox.height + paddingY * 2;
+
+        // موضع الإطار: متمركز أفقياً، فوق المستطيل المكبّر بفاصل واضح
         const zBgX = centerX - zBgW / 2;
-        const zBgY = hoveredY - zBgH - 20;   
+        const zBgY = hoveredY - zBgH - 20;   // 20px فاصل بين الإطار والمستطيل
 
         const zBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         zBg.setAttribute('x', zBgX);
         zBg.setAttribute('y', zBgY);
         zBg.setAttribute('width', zBgW);
         zBg.setAttribute('height', zBgH);
-        zBg.setAttribute('rx', '15');                       
+        zBg.setAttribute('rx', '15');                       // زوايا ناعمة
         zBg.style.fill = 'rgba(0,0,0,0.94)';
         zBg.style.pointerEvents = 'none';
 
         mainSvg.insertBefore(zBg, zText);
 
+        // النص في منتصف الإطار بالظبط
         zText.setAttribute('x', centerX);
         zText.setAttribute('y', zBgY + zBgH / 2);
 
@@ -223,6 +241,9 @@ export function processRect(r) {
         r.addEventListener('mouseout', cleanupHover);
     }
 
+    // 🔒 منع فتح الملف مرتين: على الموبايل اللمسة الواحدة بتولّد touchend ثم click.
+    // ⚡ ومفيش HEAD request قبل الفتح (كان بيضيف رحلة شبكة كاملة لكل ضغطة) — لو الملف مش موجود
+    //    رسالة "غير موجود" بتظهر في نافذة المعاينة نفسها.
     const openFile = () => {
         if (!href || href === '#') return;
         const now = Date.now();
@@ -235,53 +256,21 @@ export function processRect(r) {
 
     const scrollContainer = document.getElementById('scroll-container');
     if (scrollContainer) {
-        // ✅ إصلاح جذري: إدارة الهافر بدون استخدام preventDefault
-        let touchTimer = null;
-        let isLongPress = false;
-
         r.addEventListener('touchstart', function (e) {
             if (!interactionEnabled) return;
+            // 🆕 فحص سويتش الـ Hover
             if (document.body.classList.contains('disable-hover')) return;
-            
-            isLongPress = false;
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
-            
-            // ننتظر 400 مللي ثانية قبل إظهار الهافر (الضغط المطول)
-            touchTimer = setTimeout(() => {
-                touchTimer = null;
-                isLongPress = true;
-                startHover.call(r);
-            }, 400);
-        }, { passive: true });
-
-        r.addEventListener('touchmove', function (e) {
-            // إذا سحب المستخدم إصبعه (تمرير)، نلغي مؤقت الهافر
-            if (touchTimer) {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-            }
-            if (!isLongPress) cleanupHover();
-        }, { passive: true });
-
-        r.addEventListener('touchend', function (e) {
-            if (touchTimer) {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-            }
-            // تم إزالة e.preventDefault() لحل مشكلة [Intervention]
-            // زر الفتح (click) سيتم التحكم فيه عبر متغير isLongPress
+            startHover.call(this);
         });
-
-        // التحكم في حدث النقر النهائي
-        r.addEventListener('click', function (e) {
-            if (isLongPress) {
-                // إذا كان ضغطاً مطولاً، لا تفتح الملف (الهافر ظهر بالفعل)
-                isLongPress = false;
-                return;
+        r.addEventListener('touchend', function (e) {
+            if (!interactionEnabled) return;
+            if (Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) < 10 &&
+                (Date.now() - activeState.touchStartTime) < TAP_THRESHOLD_MS) {
+                openFile();
             }
-            // إذا كانت نقرة سريعة، افتح الملف
-            openFile();
+            cleanupHover();
         });
     }
 
@@ -293,7 +282,10 @@ export function scan() {
     const mainSvg = document.getElementById('main-svg');
     if (!mainSvg) return;
 
+    console.log('🔍 تشغيل scan()...');
     const rects = mainSvg.querySelectorAll('rect.image-mapper-shape, rect.m');
+    console.log(`✅ تم اكتشاف ${rects.length} مستطيل`);
+
     rects.forEach(r => {
         processRect(r);
         const href = r.getAttribute('data-href') || '';
@@ -334,12 +326,6 @@ export function scan() {
 
         observer.observe(mainSvg, { childList: true, subtree: true });
         window.svgObserver = observer;
+        console.log('👁️ تم تفعيل مراقب العناصر الجديدة');
     }
 }
-
-// ✅ إضافة مستمع عام لإخفاء الهافر عند النقر في أي مكان فارغ
-document.addEventListener('touchstart', (e) => {
-    if (activeState.rect && !e.target.closest('rect')) {
-        cleanupHover();
-    }
-}, { passive: true });
