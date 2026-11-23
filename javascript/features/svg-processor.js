@@ -1,6 +1,6 @@
 // ============================================
 // svg-processor.js - معالجة مستطيلات SVG وإضافة التأثيرات
-// ✅ مع إصلاح مشكلة تعارض النقر السريع مع الهافر
+// الإصدار النهائي: إصلاح خطأ touchend والهافر
 // ============================================
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
@@ -8,7 +8,7 @@ import { interactionEnabled } from '../ui/wood-interface.js';
 import { getCumulativeTranslate, getGroupImage, wrapText } from '../core/utils.js';
 import { smartOpen } from '../ui/pdf-viewer.js';
 
-// آخر مرة اتفتح فيها ملف (لمنع الفتح المزدوج touchend + click)
+// آخر مرة اتفتح فيها ملف (لمنع الفتح المزدوج)
 let lastOpenAt = 0;
 const OPEN_DEBOUNCE_MS = 700;
 
@@ -63,9 +63,7 @@ export function startHover() {
 
     const scaleFactor = 1.45;
     const scaledW = rW * scaleFactor;
-    const scaledH = rH * scaleFactor;
-    const yOffset = (rH * (scaleFactor - 1)) / 2;
-    const hoveredY = absY - yOffset;
+    const hoveredY = absY - ((rH * (scaleFactor - 1)) / 2);
 
     const rectX = parseFloat(rect.getAttribute('x')) || 0;
     const rectY = parseFloat(rect.getAttribute('y')) || 0;
@@ -238,19 +236,22 @@ export function processRect(r) {
 
     const scrollContainer = document.getElementById('scroll-container');
     if (scrollContainer) {
-        // ✅ متغير لتأخير الهافر
+        // ✅ إصلاح جذري: إدارة الهافر بدون استخدام preventDefault
         let touchTimer = null;
+        let isLongPress = false;
 
         r.addEventListener('touchstart', function (e) {
             if (!interactionEnabled) return;
             if (document.body.classList.contains('disable-hover')) return;
             
+            isLongPress = false;
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
             
-            // ✅ ننتظر 400 مللي ثانية قبل إظهار الهافر (الضغط المطول)
+            // ننتظر 400 مللي ثانية قبل إظهار الهافر (الضغط المطول)
             touchTimer = setTimeout(() => {
                 touchTimer = null;
+                isLongPress = true;
                 startHover.call(r);
             }, 400);
         }, { passive: true });
@@ -261,26 +262,27 @@ export function processRect(r) {
                 clearTimeout(touchTimer);
                 touchTimer = null;
             }
-            cleanupHover();
+            if (!isLongPress) cleanupHover();
         }, { passive: true });
 
         r.addEventListener('touchend', function (e) {
-            if (!interactionEnabled) return;
-            
-            const touchDuration = Date.now() - activeState.touchStartTime;
-            const isScrolled = Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) >= 10;
-
             if (touchTimer) {
                 clearTimeout(touchTimer);
                 touchTimer = null;
             }
+            // تم إزالة e.preventDefault() لحل مشكلة [Intervention]
+            // زر الفتح (click) سيتم التحكم فيه عبر متغير isLongPress
+        });
 
-            // ✅ إذا كان تمرير أو ضغط مطول (أكثر من 400 مللي)، نلغي الـ Click عشان ميفتحش الملف
-            if (isScrolled || touchDuration >= 400) {
-                e.preventDefault();
+        // التحكم في حدث النقر النهائي
+        r.addEventListener('click', function (e) {
+            if (isLongPress) {
+                // إذا كان ضغطاً مطولاً، لا تفتح الملف (الهافر ظهر بالفعل)
+                isLongPress = false;
+                return;
             }
-            
-            cleanupHover();
+            // إذا كانت نقرة سريعة، افتح الملف
+            openFile();
         });
     }
 
@@ -292,10 +294,7 @@ export function scan() {
     const mainSvg = document.getElementById('main-svg');
     if (!mainSvg) return;
 
-    console.log('🔍 تشغيل scan()...');
     const rects = mainSvg.querySelectorAll('rect.image-mapper-shape, rect.m');
-    console.log(`✅ تم اكتشاف ${rects.length} مستطيل`);
-
     rects.forEach(r => {
         processRect(r);
         const href = r.getAttribute('data-href') || '';
@@ -336,6 +335,12 @@ export function scan() {
 
         observer.observe(mainSvg, { childList: true, subtree: true });
         window.svgObserver = observer;
-        console.log('👁️ تم تفعيل مراقب العناصر الجديدة');
     }
 }
+
+// ✅ إضافة مستمع عام لإخفاء الهافر عند النقر في أي مكان فارغ
+document.addEventListener('touchstart', (e) => {
+    if (activeState.rect && !e.target.closest('rect')) {
+        cleanupHover();
+    }
+}, { passive: true });
