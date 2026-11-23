@@ -1,7 +1,6 @@
 // ============================================
 // svg-processor.js - معالجة مستطيلات SVG وإضافة التأثيرات
-// ✅ مع إصلاح "الكروب زوم" (getCumulativeTranslate)
-// ✅ مع دعم سويتش الـ Hover (disable-hover)
+// ✅ مع إصلاح مشكلة تعارض النقر السريع مع الهافر
 // ============================================
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
@@ -62,7 +61,6 @@ export function startHover() {
     const absY = (parseFloat(rect.getAttribute('y')) || 0) + cum.y;
     const centerX = absX + rW / 2;
 
-    // ✅ التوازن بين المستطيل المكبّر والنص
     const scaleFactor = 1.45;
     const scaledW = rW * scaleFactor;
     const scaledH = rH * scaleFactor;
@@ -110,7 +108,7 @@ export function startHover() {
         activeState.zoomPart = zPart;
     }
 
-    // ── النص المكبّر (8x زي ما هو) ──
+    // ── النص المكبّر ──
     let bText = rect.parentNode.querySelector(`.rect-label[data-original-for='${rect.dataset.href}']`);
     if (bText) {
         bText.style.opacity = '0';
@@ -128,45 +126,30 @@ export function startHover() {
         zText.style.fontWeight = 'bold';
         zText.style.pointerEvents = 'none';
         zText.style.fontFamily = "'Segoe UI', Tahoma, sans-serif";
-        // ✅ 8x زي ما هو - مش هيتم تغييره
         zText.style.fontSize = (parseFloat(bText.style.fontSize || 10) * 8) + 'px';
 
         mainSvg.appendChild(zText);
         const bbox = zText.getBBox();
 
-        // ══════════════════════════════════════════════════════
-        // ✅ الإطار الجديد: متناسب مع النص 8x + المستطيل المكبّر
-        // ══════════════════════════════════════════════════════
+        const paddingX = Math.max(bbox.width * 0.20, 60);   
+        const paddingY = Math.max(bbox.height * 0.35, 30);  
 
-        // padding يتحرك مع حجم النص (8x = محتاج padding كبير)
-        const paddingX = Math.max(bbox.width * 0.20, 60);   // 20% من عرض النص أو 60px (الأكبر)
-        const paddingY = Math.max(bbox.height * 0.35, 30);  // 35% من ارتفاع النص أو 30px (الأكبر)
-
-        // عرض الإطار = (عرض النص + padding) أو (عرض المستطيل المكبّر + هامش) - الأكبر
-        const zBgW = Math.max(
-            bbox.width + paddingX * 2,
-            scaledW + 40   // 40px هامش جانبي على الأقل
-        );
-
-        // ارتفاع الإطار = ارتفاع النص + padding
+        const zBgW = Math.max(bbox.width + paddingX * 2, scaledW + 40);
         const zBgH = bbox.height + paddingY * 2;
-
-        // موضع الإطار: متمركز أفقياً، فوق المستطيل المكبّر بفاصل واضح
         const zBgX = centerX - zBgW / 2;
-        const zBgY = hoveredY - zBgH - 20;   // 20px فاصل بين الإطار والمستطيل
+        const zBgY = hoveredY - zBgH - 20;   
 
         const zBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         zBg.setAttribute('x', zBgX);
         zBg.setAttribute('y', zBgY);
         zBg.setAttribute('width', zBgW);
         zBg.setAttribute('height', zBgH);
-        zBg.setAttribute('rx', '15');                       // زوايا ناعمة
+        zBg.setAttribute('rx', '15');                       
         zBg.style.fill = 'rgba(0,0,0,0.94)';
         zBg.style.pointerEvents = 'none';
 
         mainSvg.insertBefore(zBg, zText);
 
-        // النص في منتصف الإطار بالظبط
         zText.setAttribute('x', centerX);
         zText.setAttribute('y', zBgY + zBgH / 2);
 
@@ -243,9 +226,6 @@ export function processRect(r) {
         r.addEventListener('mouseout', cleanupHover);
     }
 
-    // 🔒 منع فتح الملف مرتين: على الموبايل اللمسة الواحدة بتولّد touchend ثم click.
-    // ⚡ ومفيش HEAD request قبل الفتح (كان بيضيف رحلة شبكة كاملة لكل ضغطة) — لو الملف مش موجود
-    //    رسالة "غير موجود" بتظهر في نافذة المعاينة نفسها.
     const openFile = () => {
         if (!href || href === '#') return;
         const now = Date.now();
@@ -258,20 +238,48 @@ export function processRect(r) {
 
     const scrollContainer = document.getElementById('scroll-container');
     if (scrollContainer) {
+        // ✅ متغير لتأخير الهافر
+        let touchTimer = null;
+
         r.addEventListener('touchstart', function (e) {
             if (!interactionEnabled) return;
-            // 🆕 فحص سويتش الـ Hover
             if (document.body.classList.contains('disable-hover')) return;
+            
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
-            startHover.call(this);
-        });
+            
+            // ✅ ننتظر 400 مللي ثانية قبل إظهار الهافر (الضغط المطول)
+            touchTimer = setTimeout(() => {
+                touchTimer = null;
+                startHover.call(r);
+            }, 400);
+        }, { passive: true });
+
+        r.addEventListener('touchmove', function (e) {
+            // إذا سحب المستخدم إصبعه (تمرير)، نلغي مؤقت الهافر
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            cleanupHover();
+        }, { passive: true });
+
         r.addEventListener('touchend', function (e) {
             if (!interactionEnabled) return;
-            if (Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) < 10 &&
-                (Date.now() - activeState.touchStartTime) < TAP_THRESHOLD_MS) {
-                openFile();
+            
+            const touchDuration = Date.now() - activeState.touchStartTime;
+            const isScrolled = Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) >= 10;
+
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
             }
+
+            // ✅ إذا كان تمرير أو ضغط مطول (أكثر من 400 مللي)، نلغي الـ Click عشان ميفتحش الملف
+            if (isScrolled || touchDuration >= 400) {
+                e.preventDefault();
+            }
+            
             cleanupHover();
         });
     }
