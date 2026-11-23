@@ -1,6 +1,5 @@
 // ============================================
-// svg-processor.js - معالجة مستطيلات SVG وإضافة التأثيرات
-// الإصدار النهائي: إصلاح خطأ touchend والهافر
+// svg-processor.js
 // ============================================
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
