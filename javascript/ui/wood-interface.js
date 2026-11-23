@@ -7,7 +7,7 @@ import { normalizeArabic, autoTranslate, getDisplayName, resetBrowserZoom, getTh
 import { pushNavigationState, goToWood, getCurrentNavigationState, navigationHistory } from '../core/navigation.js';
 import { smartOpen } from './pdf-viewer.js';
 import { globalFileTree, currentGroup, currentFolder, setCurrentFolder } from '../core/state.js';
-import { updateDynamicSizes, fetchGlobalTree } from '../core/group-loader.js';
+import { updateDynamicSizes, fetchGlobalTree, refreshGlobalTree } from '../core/group-loader.js';
 import { addScrollSystem } from './scroll-system.js';
 import {
     setupGroupChangeButton,
@@ -35,24 +35,7 @@ const ALLOWED_EXTENSIONS = [
 
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif'];
 
-// ---------- ملفات مستثناة (مسار كامل أو اسم ملف بالأحرف الصغيرة) ----------
-const EXCLUDED_FILES = [
-    'XXXXXXXXXXX.pdf'
-    // مثال لمسار كامل: 'arabic/unknown.pdf'
-];
-
-const isExcludedFile = (path) => {
-    const normalizedPath = path.replace(/^\.\//, '').toLowerCase();
-    const fileName = path.split('/').pop().toLowerCase();
-
-    return EXCLUDED_FILES.some(excluded => {
-        const cleanExcluded = excluded.replace(/^\.\//, '').toLowerCase();
-        return normalizedPath === cleanExcluded || fileName === cleanExcluded;
-    });
-};
-
 const isSupportedFile = (path) => {
-    if (isExcludedFile(path)) return false;
     const ext = path.split('.').pop().toLowerCase();
     return ALLOWED_EXTENSIONS.includes(ext);
 };
@@ -151,12 +134,106 @@ export async function updateWoodInterface() {
 
     if (!dynamicGroup || !backBtnText) return;
 
-    dynamicGroup.querySelectorAll('.wood-folder-group, .wood-file-group, .scroll-container-group, .subject-separator-group, .scroll-bar-group, .window-frame')
+    dynamicGroup.querySelectorAll('.wood-folder-group, .wood-file-group, .scroll-container-group, .subject-separator-group, .scroll-bar-group, .window-frame, .api-error-group')
         .forEach(el => el.remove());
 
     await fetchGlobalTree();
 
     const query = normalizeArabic(searchInput ? searchInput.value : '');
+
+    // ✅ إذا فشل جلب شجرة الملفات، نعرض الزر العملاق للاعتذار وإعادة المحاولة
+    if (globalFileTree.length === 0 && query === '') {
+        const errorGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        errorGroup.setAttribute("class", "api-error-group");
+        errorGroup.style.cursor = "pointer";
+
+        // الخلفية العملاقة
+        const errorRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        errorRect.setAttribute("x", "120");
+        errorRect.setAttribute("y", "250");
+        errorRect.setAttribute("width", "780");
+        errorRect.setAttribute("height", "1000"); 
+        errorRect.setAttribute("rx", "15");
+        errorRect.style.fill = "#1a1a1a";
+        errorRect.style.stroke = "#ff5252";
+        errorRect.style.strokeWidth = "4";
+        
+        // أيقونة التحذير
+        const warningIcon = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        warningIcon.setAttribute("x", "510");
+        warningIcon.setAttribute("y", "550");
+        warningIcon.setAttribute("text-anchor", "middle");
+        warningIcon.style.fontSize = "80px";
+        warningIcon.textContent = "⚠️";
+
+        // نص الاعتذار
+        const errorText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        errorText.setAttribute("x", "510");
+        errorText.setAttribute("y", "650");
+        errorText.setAttribute("text-anchor", "middle");
+        errorText.setAttribute("fill", "#ff5252");
+        errorText.style.fontSize = "36px";
+        errorText.style.fontWeight = "bold";
+        errorText.style.fontFamily = "Arial, sans-serif";
+        errorText.textContent = "نعتذر، حدث عطل تقني في GitHub";
+
+        const subText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        subText.setAttribute("x", "510");
+        subText.setAttribute("y", "720");
+        subText.setAttribute("text-anchor", "middle");
+        subText.setAttribute("fill", "#aaa");
+        subText.style.fontSize = "24px";
+        subText.style.fontFamily = "Arial, sans-serif";
+        subText.textContent = "تعذر جلب قائمة الملفات. يرجى المحاولة مرة أخرى.";
+
+        // زر إعادة المحاولة
+        const refreshBtnRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        refreshBtnRect.setAttribute("x", "260");
+        refreshBtnRect.setAttribute("y", "800");
+        refreshBtnRect.setAttribute("width", "500");
+        refreshBtnRect.setAttribute("height", "90");
+        refreshBtnRect.setAttribute("rx", "15");
+        refreshBtnRect.style.fill = "#ffca28";
+        refreshBtnRect.style.stroke = "#fff";
+        refreshBtnRect.style.strokeWidth = "3";
+
+        const refreshBtnText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        refreshBtnText.setAttribute("x", "510");
+        refreshBtnText.setAttribute("y", "860");
+        refreshBtnText.setAttribute("text-anchor", "middle");
+        refreshBtnText.setAttribute("fill", "#000");
+        refreshBtnText.style.fontSize = "32px";
+        refreshBtnText.style.fontWeight = "bold";
+        refreshBtnText.style.fontFamily = "Arial, sans-serif";
+        refreshBtnText.textContent = "🔄 إعادة المحاولة الآن";
+
+        errorGroup.appendChild(errorRect);
+        errorGroup.appendChild(warningIcon);
+        errorGroup.appendChild(errorText);
+        errorGroup.appendChild(subText);
+        errorGroup.appendChild(refreshBtnRect);
+        errorGroup.appendChild(refreshBtnText);
+
+        // حدث الضغط: يجلب الملفات ويحدث الواجهة دون إعادة تحميل الصفحة
+        errorGroup.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            
+            // تغيير النص لإظهار حالة التحميل
+            errorText.textContent = "⏳ جاري جلب الملفات...";
+            errorText.setAttribute("fill", "#ffca28");
+            subText.textContent = "يرجى الانتظار قليلاً";
+            refreshBtnText.textContent = "⏳ جاري التحديث...";
+
+            // إعادة جلب الشجرة وتحديث الواجهة
+            await refreshGlobalTree();
+            
+            // استدعاء الدالة من جديد لترسم الملفات (أو تظهر الخطأ مجدداً لو فشلت)
+            updateWoodInterface();
+        });
+
+        dynamicGroup.appendChild(errorGroup);
+        return; // إيقاف باقي الكود لأننا لا نملك ملفات لنرسمها
+    }
 
     if (currentFolder === "") {
         backBtnText.textContent = "➡️ إلى الخريطة ➡️";
@@ -271,7 +348,6 @@ export async function updateWoodInterface() {
     const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
     clipPath.setAttribute("id", clipPathId);
 
-    // 🔥 تعديل مساحة الرؤية لتصل إلى آخر الشاشة (2454 - 250 = 2204)
     const clipRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     clipRect.setAttribute("x", "120");
     clipRect.setAttribute("y", "250");
@@ -396,10 +472,8 @@ export async function updateWoodInterface() {
 
             if (shouldDisplay) {
                 if (isImage) {
-                    // 🔥 تشفير المسار لمنع أخطاء 404 بسبب المسافات
                     const encodedPath = item.path.split('/').map(encodeURIComponent).join('/');
                     const imageUrl = `${RAW_CONTENT_BASE}${encodedPath}`;
-                    // ⚡ الكارت (780×200) بيعرض thumbnail صغير لو موجود، والأصل بيتحمّل في الـ lightbox بس
                     const cardUrl = getThumbUrl(item.path) || imageUrl;
                     
                     const displayName = cleanName.length > 40 ? cleanName.substring(0, 37) + "..." : cleanName;
@@ -425,7 +499,6 @@ export async function updateWoodInterface() {
                     bgRect.setAttribute("clip-path", `url(#${imgClipId})`);
                     bgRect.style.fill = "#1a1a1a";
 
-                    // نص التحميل
                     const loadingText = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     loadingText.setAttribute("x", x + width / 2);
                     loadingText.setAttribute("y", y + height / 2);
@@ -445,10 +518,8 @@ export async function updateWoodInterface() {
                     imgElement.setAttribute("clip-path", `url(#${imgClipId})`);
                     imgElement.style.pointerEvents = "none";
 
-                    // التعامل مع حالة نجاح أو فشل التحميل
                     imgElement.addEventListener('load', () => loadingText.remove());
                     imgElement.addEventListener('error', () => {
-                        // الـ thumbnail مش متاح (اتمسح/لسه متولّدش)؟ نجرّب الأصل قبل ما نستسلم
                         if (cardUrl !== imageUrl && imgElement.getAttribute("href") === cardUrl) {
                             imgElement.setAttribute("href", imageUrl);
                             return;
@@ -519,7 +590,7 @@ export async function updateWoodInterface() {
                         clearTimeout(lpTimer);
                         if (!lpTriggered && Date.now() - tStart < 500) {
                             e.stopPropagation();
-                            if (e.cancelable) e.preventDefault(); // إصلاح تحذير المتصفح
+                            if (e.cancelable) e.preventDefault(); 
                             resetBrowserZoom();
                             openImageLightbox(imageUrl, cleanName);
                         }
@@ -663,8 +734,6 @@ export async function updateWoodInterface() {
 
     yPosition += BOTTOM_PADDING;
     const totalContentHeight = yPosition - 250;
-    
-    // تحديث شرط التمرير بناء على الارتفاع الجديد 2204
     const needsScroll = totalContentHeight > 2204; 
 
     if (needsScroll) {
@@ -753,7 +822,7 @@ export function updateWelcomeMessages() {
     }
     const loadingH1 = document.querySelector('#loading-content h1');
     if (loadingH1 && currentGroup) {
-        loadingH1.innerHTML = `أهلاً بك يا <span style="color: #ffca28;">${displayName}</span><br>في ترم  ${REPO_NAME.toUpperCase()}`;
+        loadingH1.innerHTML = `أهلاً بك يا <span style="color: #ffca28;">${displayName}</span><br>في ${REPO_NAME.toUpperCase()}`;
     }
 }
 
@@ -763,7 +832,6 @@ export function preventInteractionWhenHidden() {
     const searchContainer = document.getElementById('search-container');
 
     if (!toggleContainer || !searchContainer) {
-        console.warn('⚠️ لم يتم العثور على الحاويات، إعادة المحاولة...');
         setTimeout(preventInteractionWhenHidden, 500);
         return;
     }
@@ -827,15 +895,8 @@ export function preventInteractionWhenHidden() {
         });
     });
 
-    toggleObserver.observe(toggleContainer, {
-        attributes: true,
-        attributeFilter: ['class', 'style']
-    });
-
-    searchObserver.observe(searchContainer, {
-        attributes: true,
-        attributeFilter: ['class', 'style']
-    });
+    toggleObserver.observe(toggleContainer, { attributes: true, attributeFilter: ['class', 'style'] });
+    searchObserver.observe(searchContainer, { attributes: true, attributeFilter: ['class', 'style'] });
 
     if (toggleContainer.classList.contains('hidden') ||
         toggleContainer.classList.contains('fully-hidden') ||
