@@ -53,24 +53,25 @@ export function setupResetButton() {
         resetBtn.addEventListener('click', async function (e) {
             e.stopPropagation();
 
-            const confirmReset = confirm('⚠️ سيتم حذف جميع الملفات المحمية (Cache) وإعادة ضبط الموقع (باستثناء كود التعريف الخاص بك). هل تريد الاستمرار؟');
+            // ✅ تم تبسيط الرسالة وحذف الاستثناءات
+            const confirmReset = confirm('⚠️ سيتم حذف جميع الملفات المحمية (Cache) وإعادة ضبط الموقع. هل تريد الاستمرار؟');
             if (!confirmReset) return;
 
             console.log('🧹 بدء التنظيف الشامل...');
 
-            // ✅ 1. التأكد من توليد وحفظ الـ HEX ID قبل المسح
+            // 1. التأكد من توليد وحفظ الـ HEX ID في الخلفية قبل المسح
             const staticHexId = getStaticHexId();
 
             // 2. مسح الذاكرة
             localStorage.clear();
             sessionStorage.clear();
 
-            // ✅ 3. استعادة كود الـ HEX فوراً حتى لا يضيع
+            // 3. استعادة كود الـ HEX فوراً حتى لا يضيع
             if (staticHexId) {
                 localStorage.setItem('static_hex_id', staticHexId);
             }
 
-            // ✅ 4. مسح الكاش من خلال الـ SW
+            // 4. مسح الكاش من خلال الـ SW
             await clearAppCaches();
             console.log('📡 الـ SW مسح كاش التطبيق');
 
