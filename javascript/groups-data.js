@@ -26,7 +26,7 @@ wed: ['o', 'o'],
 tue: ['o', 'o', 'o', 'o'],
 sun: ['o', 
 {cls:'m l',href:'Business/Lecture/06_Organizing.pdf'},
-'o'],
+{cls:'m l',href:'XXXXXXXXXXX.pdf'}],
 sat: [
 {cls:'m l',href:'XXXXXXXXXXX.pdf'},
 {cls:'m l',href:'./Bio/Lecture/07&08_Enzymes.pdf'},
