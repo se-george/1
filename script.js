@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         observeZIndexChanges();
         updateWelcomeMessages();
 
-        // ✅ تفعيل ميزة الزوم بعجلة الماوس (بكرة الماوس بين الزرين)
+        // ✅ تفعيل ميزة الزوم بعجلة الماوس
         setupMouseWheelZoom();
 
         document.addEventListener('contextmenu', (e) => {
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
 export { scan };
 
 // ==========================================
-// PWA Install Prompt Handler (Robust & Fallback)
+// PWA Install Prompt Handler (Clean & Native)
 // ==========================================
 let deferredPrompt = null;
 
@@ -183,13 +183,13 @@ function showPWAInstallButton() {
     const installBtn = document.getElementById('pwa-install-btn');
     if (!installBtn) return;
 
-    // لو التطبيق متثبت بالفعل، نخفي الزر
+    // إخفاء الزر تماماً لو التطبيق مفتوح كتطبيق مستقل (متثبت بالفعل)
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
         installBtn.style.display = 'none';
         return;
     }
 
-    // إظهار الزر
+    // إظهار الزر (يتم استدعاء هذه الدالة فقط عندما يكون المتصفح جاهزاً للتثبيت)
     installBtn.style.display = 'inline-flex';
 
     if (!installBtn.dataset.bound) {
@@ -197,29 +197,16 @@ function showPWAInstallButton() {
         installBtn.addEventListener('click', async () => {
             const promptEvent = deferredPrompt || window._pwaPrompt;
             
-            // إذا كان المتصفح لا يدعم التثبيت التلقائي (أو تم حظره)
-            if (!promptEvent) {
-                const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-                const isAndroid = /android/i.test(navigator.userAgent);
-                
-                let msg = "لتثبيت التطبيق على جهازك:\n\n";
-                if (isIOS) {
-                    msg += "1. اضغط على زر المشاركة (المربع الذي يعلوه سهم ⬆️) في أسفل الشاشة.\n2. اختر 'Add to Home Screen' (إضافة إلى الشاشة الرئيسية).";
-                } else if (isAndroid) {
-                    msg += "1. اضغط على النقاط الثلاث (⋮) في أعلى المتصفح.\n2. اختر 'Install app' أو 'تثبيت التطبيق' أو 'Add page to -> Home screen إضافة إلى الشاشة الرئيسية'.";
-                } else {
-                    msg += "اضغط على أيقونة التثبيت (شاشة بها سهم) في شريط العنوان بجانب رابط الموقع، أو من قائمة المتصفح اختر 'تثبيت التطبيق'.";
-                }
-                alert(msg);
-                return;
-            }
+            // لو اختفى الحدث لأي سبب، نخرج بهدوء
+            if (!promptEvent) return; 
 
-            // إذا كان مدعوماً، نظهر نافذة التثبيت الرسمية
             installBtn.style.display = 'none';
             try {
                 promptEvent.prompt();
                 const result = await promptEvent.userChoice;
                 console.log('📲 نتيجة التثبيت:', result.outcome);
+                
+                // لو المستخدم رفض التثبيت، نخلي الزر يرجع بعد 30 ثانية
                 if (result.outcome !== 'accepted') {
                     setTimeout(() => {
                         if (!window.matchMedia('(display-mode: standalone)').matches) {
@@ -236,12 +223,12 @@ function showPWAInstallButton() {
     }
 }
 
-// 1) استقبال الحدث
+// 1) نستمع للحدث الرسمي من المتصفح (هنا فقط سيظهر الزر)
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     window._pwaPrompt = e;
-    console.log('✅ beforeinstallprompt جاهز');
+    console.log('✅ beforeinstallprompt جاهز - المتصفح يدعم التثبيت');
     showPWAInstallButton();
 });
 
@@ -261,12 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 4) ✅ إجبار الزر على الظهور بعد 3 ثوانٍ حتى لو المتصفح لم يطلق الحدث
-setTimeout(() => {
-    showPWAInstallButton();
-}, 3000);
-
-// 5) بعد التثبيت
+// 4) بعد التثبيت بنجاح، نخفي الزر فوراً
 window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     window._pwaPrompt = null;
@@ -274,9 +256,3 @@ window.addEventListener('appinstalled', () => {
     if (installBtn) installBtn.style.display = 'none';
     console.log('🎉 تم تثبيت التطبيق بنجاح');
 });
-
-if (window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true) {
-    const installBtn = document.getElementById('pwa-install-btn');
-    if (installBtn) installBtn.style.display = 'none';
-}
