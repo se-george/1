@@ -14,7 +14,7 @@ export const MAX_CLOUD_SCORES      = 5;
 // 🏆 قائمة المتصدرين (قم بتعديل هذه القائمة يدوياً كل فترة)
 // ════════════════════════════
 const MANUAL_LEADERBOARD = [
-    { name: "جورج رضا", score: 126 },
+    { name: "جورج رضا", score: 397 },
     { name: "محى", score: 0 },
     { name: "داود", score: 0 },
     { name: "عبدالرحمن", score: 0 },
