@@ -1,0 +1,9 @@
+{
+  "appId": "com.cs26.map",
+  "appName": "CS26 Map",
+  "webDir": "www",
+  "server": {
+    "url": "https://se-george.github.io/1/",
+    "errorPath": "offline.html"
+  }
+}

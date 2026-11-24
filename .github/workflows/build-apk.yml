@@ -1,0 +1,121 @@
+# بناء تطبيق الأندرويد (APK) من الموبايل:
+# GitHub ← تبويب Actions ← "Build APK" ← Run workflow ← اكتب رقم الإصدار ← Run
+name: Build APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'رقم الإصدار (مثال 1.0.1) — لازم يكون أكبر من الإصدار السابق'
+        required: true
+        default: '1.0.0'
+      mode:
+        description: 'live = التطبيق يفتح الموقع مباشرة (التحديثات بتوصل فورًا) | bundled = ملفات الموقع جوه الـ APK'
+        type: choice
+        options:
+          - live
+          - bundled
+        default: live
+      publish:
+        description: 'انشر الـ APK كـ Release (مطلوب عشان زر التحديث جوه التطبيق يشوفه)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write        # لإنشاء الـ Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ inputs.version }}
+      MODE: ${{ inputs.mode }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      # رابط الموقع المنشور (GitHub Pages). لو عندك دومين خاص غيّره هنا.
+      APP_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version format
+        run: |
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+(\.[0-9]+){0,2}$'; then
+            echo "::error::رقم الإصدار لازم يكون زي 1.0.1 (جاي: $VERSION)"; exit 1
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Install icon tool (optional)
+        run: npm install --no-save --no-audit --no-fund --legacy-peer-deps sharp || echo "sharp مش متاح — هتظهر الأيقونة الافتراضية"
+
+      - name: Prepare web assets
+        run: node scripts/prepare-www.mjs
+
+      - name: Add Android project
+        run: npx cap add android
+
+      - name: Set version and icon
+        run: node scripts/prepare-android.mjs
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      # نفس مفتاح التوقيع في كل بناء، عشان الـ APK الجديد يتثبّت فوق القديم من غير ما يتمسح
+      - name: Restore signing key from cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: debug-keystore-${{ github.repository }}-v1
+
+      - name: Use signing key from secret (optional)
+        env:
+          KS: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            mkdir -p ~/.android
+            echo "$KS" | base64 -d > ~/.android/debug.keystore
+            echo "بستخدم مفتاح التوقيع من الـ secret"
+          fi
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Name the APK
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk "out/CS26-v${VERSION}.apk"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CS26-apk
+          path: out/*.apk
+
+      - name: Publish release
+        if: ${{ inputs.publish }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${VERSION}"
+          APK="out/CS26-v${VERSION}.apk"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK" --clobber
+          else
+            gh release create "$TAG" "$APK" --title "CS26 $TAG" --notes "نسخة التطبيق $TAG" --latest
+          fi

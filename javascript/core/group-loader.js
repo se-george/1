@@ -256,73 +256,80 @@ export async function loadImages() {
         return;
     }
 
-    const MAX_CONCURRENT = 3;
-    let currentIndex = 0;
+    // كل رابط بيتجرّب مرة واحدة بس في التحميل ده، حتى لو أكتر من أسبوع بيستخدمه أو وقع عليه كبديل
+    // (الخريطة بتتفرّغ مع كل تحميل جروب، فلو الملف اترفع بعدين بيتجرّب تاني)
+    const probes = new Map();
+    const probeImage = (url) => {
+        if (!probes.has(url)) {
+            probes.set(url, new Promise(resolve => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = url;
+            }));
+        }
+        return probes.get(url);
+    };
 
-    function loadOneImage(url) {
-        return new Promise((resolve) => {
-            const img = new Image();
+    const svgImages = () => [...mainSvg.querySelectorAll('image')];
+    const ownersOf = (url) => svgImages().filter(si => si.getAttribute('data-src') === url);
 
-            img.onload = function () {
-                const allImages = [
-                    ...mainSvg.querySelectorAll('image'),
-                    ...(document.getElementById('files-list-container')?.querySelectorAll('image') || [])
-                ];
-                allImages.forEach(si => {
-                    const dataSrc = si.getAttribute('data-src');
-                    if (dataSrc === url) {
-                        si.setAttribute('href', this.src);
-                        si.removeAttribute('data-src');
-                    }
+    // بيلاقي أول صورة شغالة في سلسلة بدائل الرابط، ويطبّقها على كل الأسابيع اللي بتستخدمه
+    async function resolveImage(startUrl) {
+        let url = startUrl;
+        const tried = [];
+
+        while (true) {
+            const img = await probeImage(url);
+
+            if (img) {
+                const targets = ownersOf(url);
+                targets.forEach(si => {
+                    si.setAttribute('href', img.src);
+                    si.removeAttribute('data-src');
+                    si.removeAttribute('data-fallbacks');
                 });
-                if (currentGroup && url.startsWith(`image/${currentGroup}/`)) rememberGroupImage(currentGroup, url);
-
-                loadingProgress.completedSteps++;
-                updateLoadProgress();
-                resolve();
-            };
-
-            img.onerror = function () {
-                const owners = [...mainSvg.querySelectorAll('image')]
-                    .filter(si => si.getAttribute('data-src') === url);
-
-                const fallbacks = (owners[0]?.getAttribute('data-fallbacks') || '')
-                    .split(',').filter(Boolean);
-                if (fallbacks.length) {
-                    const [next, ...rest] = fallbacks;
-                    owners.forEach(si => {
-                        si.setAttribute('data-src', next);
-                        si.setAttribute('data-fallbacks', rest.join(','));
-                        si.setAttribute('data-tried', [si.getAttribute('data-tried'), url].filter(Boolean).join(','));
-                    });
-                    loadOneImage(next).then(resolve);
-                    return;
+                // نحفظ صورة أحدث أسبوع بس (للـ preload في index.html)
+                if (currentGroup && url.startsWith(`image/${currentGroup}/`) && targets.some(si => si.hasAttribute('data-latest'))) {
+                    rememberGroupImage(currentGroup, url);
                 }
+                return;
+            }
 
-                const tried = [...new Set(
-                    [owners[0]?.getAttribute('data-tried'), url].filter(Boolean).join(',').split(',')
-                )];
+            tried.push(url);
+            const owners = ownersOf(url);
+            const fallbacks = (owners[0]?.getAttribute('data-fallbacks') || '').split(',').filter(Boolean);
+
+            if (fallbacks.length === 0) {
                 owners.forEach(si => {
                     si.style.display = 'none';
                     si.removeAttribute('data-src');
                     si.removeAttribute('data-fallbacks');
                     if (si.closest('#group-specific-content')) showMissingImageNotice(si, tried);
                 });
-                
-                loadingProgress.completedSteps++;
-                updateLoadProgress();
-                resolve();
-            };
+                return;
+            }
 
-            img.src = url;
-        });
+            const [next, ...rest] = fallbacks;
+            owners.forEach(si => {
+                si.setAttribute('data-src', next);
+                si.setAttribute('data-fallbacks', rest.join(','));
+            });
+            url = next;
+        }
     }
+
+    const MAX_CONCURRENT = 3;
+    let currentIndex = 0;
 
     async function loadNextBatch() {
         const batch = [];
         const end = Math.min(currentIndex + MAX_CONCURRENT, imageUrlsToLoad.length);
         for (let i = currentIndex; i < end; i++) {
-            batch.push(loadOneImage(imageUrlsToLoad[i]));
+            batch.push(resolveImage(imageUrlsToLoad[i]).finally(() => {
+                loadingProgress.completedSteps++;
+                updateLoadProgress();
+            }));
         }
         currentIndex = end;
 

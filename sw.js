@@ -1,10 +1,10 @@
 // =============================================
 // sw.js - Service Worker
 // =============================================
-const CACHE_PREFIX = 'semester-1-v21';
-const CACHE_NAME = CACHE_PREFIX + 'cache-v21';   
-const CONTENT_CACHE = CACHE_PREFIX + 'content';  
-const LEGACY_CACHES = ['semester-1-cache-v21'];   
+// ✅ عند كل تحديث: غيّر رقم الإصدار في سطر CACHE_NAME بس (watch-cache.sh بيراقب السطر ده)
+const CACHE_FAMILY = 'semester-1';                  // ثابت — أي كاش بيبدأ بـ 'semester-1-' بتاعنا وبيتنضف تلقائيًا
+const CACHE_NAME = CACHE_FAMILY + '-cache-v18';
+const CONTENT_CACHE = CACHE_FAMILY + '-content';
 
 const RAW_HOST = 'raw.githubusercontent.com';    
 const CDN_HOST = 'cdnjs.cloudflare.com';         
@@ -41,6 +41,7 @@ const urlsToCache = [
    './javascript/features/preload-game.js',
    './javascript/features/preload.js',
    './javascript/features/svg-processor.js',
+   './javascript/features/sync-local.js',
    './image/0.webp',
    './image/wood.webp',
 ];
@@ -89,7 +90,7 @@ const OFFLINE_HTML = `<!DOCTYPE html>
                         </body>
                         </html>`;
 
-const isOurCache = (key) => key.startsWith(CACHE_PREFIX) || LEGACY_CACHES.includes(key);
+const isOurCache = (key) => key.startsWith(CACHE_FAMILY + '-');
 
 function keepAlive(event, promise) {
     try { event.waitUntil(promise); } catch (e) { /* الحدث خلص */ }
@@ -322,11 +323,16 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             fetch(request, { cache: 'no-store' }) // نتجاوز كاش المتصفح دائماً
                 .then(response => {
-                    const copy = response.clone();
-                    caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+                    if (canCacheShell(response)) {
+                        const copy = response.clone();
+                        keepAlive(event, caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {}));
+                    }
                     return response;
                 })
-                .catch(() => caches.match(request))
+                // أوفلاين: النسخة المخزنة (حتى لو الرابط فيه ?v=...) ثم index.html ثم صفحة الأوفلاين
+                .catch(async () => (await caches.match(request, { ignoreSearch: true }))
+                    || (await caches.match('./index.html'))
+                    || offlineResponse(request))
         );
         return;
     }

@@ -10,7 +10,7 @@
   "orientation": "portrait",
   "lang": "ar",
   "dir": "rtl",
-  "categories": ["education", "medical"],
+  "categories": ["education"],
   "icons": [
     {
       "src": "image/0.webp",

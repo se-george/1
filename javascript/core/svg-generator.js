@@ -1,5 +1,5 @@
 import { WEEK_SPACING } from '../groups-data.js';
-import { groupImagePaths } from './config.js';
+import { weekImagePaths } from './config.js';
 
 const DEFAULT_SLOT_CLASS = 'o';
 
@@ -52,14 +52,8 @@ export function generateGroupSVG(groupLetter, group) {
 
   const template = group.template;
 
-  // صورة الخريطة: الاسم الأساسي في data-src والبدائل في data-fallbacks
-  // (group-loader بيجرّبها بالترتيب لو الأساسي مش موجود)
-  const [mapImage, ...mapImageFallbacks] = groupImagePaths(groupLetter);
-  const mapImageAttrs = `data-src="${mapImage}"` +
-    (mapImageFallbacks.length ? ` data-fallbacks="${mapImageFallbacks.join(',')}"` : '');
-
   const weekNums = Object.keys(group)
-    .filter(k => k !== 'template')
+    .filter(k => /^\d+$/.test(k))   // أرقام الأسابيع بس (template / maps مش أسابيع)
     .map(Number)
     .sort((a, b) => b - a);
 
@@ -71,6 +65,12 @@ export function generateGroupSVG(groupLetter, group) {
 
   for (const N of weekNums) {
     out += `<g transform="translate(${-N * WEEK_SPACING},0)">`;
+    // صورة الأسبوع: الأساسية في data-src والبدائل في data-fallbacks (group-loader بيجرّبها بالترتيب)
+    // data-latest = أحدث أسبوع (هو أول واحد بيظهر للمستخدم) فصورته هي اللي بتتحفظ للـ preload
+    const [mapImage, ...mapImageFallbacks] = weekImagePaths(groupLetter, N, group.maps);
+    const mapImageAttrs = `data-src="${mapImage}"` +
+      (mapImageFallbacks.length ? ` data-fallbacks="${mapImageFallbacks.join(',')}"` : '') +
+      (N === maxWeek ? ' data-latest="1"' : '');
     out += `<image ${mapImageAttrs} width="1024" height="2454"/>`;
     out += `<text x="512" y="2300" class="m">${N}</text>`;
 

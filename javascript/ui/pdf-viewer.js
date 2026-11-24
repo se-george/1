@@ -7,12 +7,6 @@ import { pushNavigationState, popNavigationState } from '../core/navigation.js';
 import { resetBrowserZoom, getThumbUrl, resetSvgZoom } from '../core/utils.js';
 
 export let currentPreviewItem = null;
-export let isToolbarExpanded = false;
-export let isPdfToolbarHidden = false; 
-
-let dragActive = false;
-let startX, startY, initialLeft, initialTop;
-let currentBlobUrl = null; 
 
 const PDFJS_VERSION = '3.11.174';
 const PDFJS_BASE = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/`;
@@ -348,6 +342,36 @@ export function openWithBrowser(item) {
     console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
 }
 
+// تنزيل الملف على الجهاز (مرة واحدة) وفتحه بتطبيق الـ PDF — في الـ APK بس
+export async function openOnDevice(item) {
+    if (!item || !item.path) return;
+    resetBrowserZoom();
+    resetSvgZoom();
+
+    const btn = document.getElementById('open-device-btn');
+    const label = btn && btn.querySelector('.method-btn-text');
+    const oldLabel = label ? label.textContent : '';
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = '⏳ جاري التحميل...';
+
+    try {
+        const { syncAndOpenFile } = await import('../features/sync-local.js');
+        const result = await syncAndOpenFile(item.path);
+        if (result.ok) {
+            if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
+            closeOpenOptions();
+        } else {
+            alert(result.message || 'تعذر فتح الملف');
+        }
+    } catch (err) {
+        console.error('❌ openOnDevice:', err);
+        alert('تعذر فتح الملف على الجهاز');
+    } finally {
+        if (btn) btn.disabled = false;
+        if (label) label.textContent = oldLabel;
+    }
+}
+
 export function smartOpen(item) {
     if (!item || !item.path) return;
     showOpenOptions(item);
@@ -424,65 +448,17 @@ export function initPDFViewer() {
         });
     }
 
-    const closePdfBtn = document.getElementById('closePdfBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const shareBtn = document.getElementById('shareBtn');
-    const expandToolbarBtn = document.getElementById('expand-toolbar-btn');
-    const pdfEyeDraggable = document.getElementById('pdf-eye-draggable');
-    const pdfOverlay = document.getElementById('pdf-overlay');
-    const pdfFrame = document.getElementById('pdfFrame');
-
-    if (closePdfBtn) {
-        closePdfBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (pdfOverlay) {
-                pdfOverlay.classList.add('hidden');
-                pdfOverlay.style.display = 'none';
-            }
-            if (pdfFrame) pdfFrame.src = '';
-            if (currentBlobUrl) {
-                URL.revokeObjectURL(currentBlobUrl);
-                currentBlobUrl = null;
-            }
-            resetBrowserZoom();
-            resetSvgZoom(); // ✅ إلغاء الزوم عند إغلاق PDF Overlay
-            popNavigationState();
-        });
-    }
-
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (currentPreviewItem && currentPreviewItem.path) {
-                const fileUrl = `${RAW_CONTENT_BASE}${currentPreviewItem.path}`;
-                const a = document.createElement('a');
-                a.href = fileUrl;
-                a.download = fileUrl.split('/').pop();
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            }
-        });
-    }
-
-    if (shareBtn) {
-        shareBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (currentPreviewItem && currentPreviewItem.path) {
-                const fileUrl = `${RAW_CONTENT_BASE}${currentPreviewItem.path}`;
-                if (navigator.share) {
-                    try {
-                        await navigator.share({ url: fileUrl, title: fileUrl.split('/').pop() });
-                    } catch (err) {
-                        navigator.clipboard?.writeText(fileUrl);
-                        alert('تم نسخ الرابط!');
-                    }
-                } else {
-                    navigator.clipboard?.writeText(fileUrl);
-                    alert('تم نسخ الرابط!');
-                }
-            }
-        });
+    // زر "فتح من الجهاز" بيظهر في تطبيق الـ APK بس
+    const deviceBtn = document.getElementById('open-device-btn');
+    if (deviceBtn) {
+        import('../features/sync-local.js').then(({ isNativeApp }) => {
+            if (!isNativeApp()) return;
+            deviceBtn.style.display = '';
+            deviceBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentPreviewItem) openOnDevice(currentPreviewItem);
+            });
+        }).catch(() => { /* مفيش دعم للتطبيق الأصلي — الزر يفضل مخفي */ });
     }
 
     console.log('✅ معالجات المعاينة والفتح جاهزة');

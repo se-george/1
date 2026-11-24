@@ -51,7 +51,10 @@ export function autoTranslate(filename) {
     if (!filename) return '';
     let arabic = filename.toLowerCase();
     for (let [en, ar] of Object.entries(translationMap)) {
-        const regex = new RegExp(en, 'gi');
+        const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // المفاتيح القصيرة (IS / bio) لازم تكون كلمة كاملة، وإلا بتتطابق جوّه أي كلمة فيها "is"
+        const pattern = /^[a-z]{1,3}$/i.test(en) ? `(?<![a-z])${escaped}(?![a-z])` : escaped;
+        const regex = new RegExp(pattern, 'gi');
         arabic = arabic.replace(regex, ar);
     }
     arabic = arabic
@@ -250,7 +253,7 @@ export function getThumbUrl(path) {
 // ------------------------------
 // 11. مسح الكاش — من خلال الـ Service Worker فقط
 // ------------------------------
-export async function clearAppCaches(timeoutMs = 40) {
+export async function clearAppCaches(timeoutMs = 3000) {
     if (!('serviceWorker' in navigator)) return false;
     const registration = await navigator.serviceWorker.getRegistration();
     const worker = registration && (registration.active || registration.waiting || registration.installing);

@@ -20,19 +20,43 @@ export const groupImagePaths = (groupLetter) => {
     return last && all.includes(last) ? [last, ...all.filter(path => path !== last)] : all;
 };
 
+// ✅ صورة الخريطة لكل أسبوع (بتقرا maps من groups-data.js — شوف الشرح هناك)
+const pad2 = (n) => String(n).padStart(2, '0');
+
+function mapVersions(maps) {
+    if (!maps) return [];
+    const entries = Array.isArray(maps) ? maps.map(week => [week, null]) : Object.entries(maps);
+    return entries
+        .map(([week, file]) => ({ from: Number(week), file }))
+        .filter(v => Number.isInteger(v.from) && v.from > 0)
+        .sort((a, b) => b.from - a.from);
+}
+
+// ترجع [الصورة الأساسية للأسبوع, ...بدائل]: آخر نسخة بدأت في أسبوع ≤ week ثم اللي قبلها ثم الأسماء القديمة (1.webp / 01.webp)
+export const weekImagePaths = (groupLetter, week, maps) => {
+    const dir = `image/${groupLetter}/`;
+    const chain = [];
+    for (const v of mapVersions(maps)) {
+        if (v.from > week) continue;
+        if (v.file) chain.push(dir + v.file);
+        else chain.push(`${dir}${pad2(v.from)}.webp`, `${dir}${v.from}.webp`);
+    }
+    return [...new Set([...chain, ...groupImagePaths(groupLetter)])];
+};
+
 export const rememberGroupImage = (groupLetter, path) => {
     try { localStorage.setItem(mapImageKey(groupLetter), path); } catch (e) { /* التخزين مقفول */ }
 };
 
 export const THUMBS_DIR = 'thumbs';
-export const HIDDEN_FOLDERS = ['image', 'groups', 'javascript', THUMBS_DIR];
+export const HIDDEN_FOLDERS = ['image', 'groups', 'javascript', THUMBS_DIR, 'android', 'ios', 'www', 'node_modules', 'scripts'];
 
 export const SUBJECT_FOLDERS = [
     'Lecture', 'Section', 'Book', 'Question', 'Video', 'Photo','Assignment', 'Answer', 'Whiteboard', 'Media'
 ];
 
 export const translationMap = {
-    'Percalculus': 'بريكالكيولاس',
+    'Precalculus': 'بريكالكيولاس',
     'IS': 'Introduction to information System',
     'Introduction to Computing': 'كومبيوتينج',
     'section': 'سكشن',

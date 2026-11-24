@@ -5,27 +5,10 @@
 import { setupBackButton } from './javascript/core/navigation.js';
 import { preventInteractionWhenHidden, initWoodUI, updateWelcomeMessages } from './javascript/ui/wood-interface.js';
 import { initPDFViewer } from './javascript/ui/pdf-viewer.js';
-import { initializeGroup, loadSelectedGroup } from './javascript/core/group-loader.js';
-import { scan } from './javascript/features/svg-processor.js';
+import { initializeGroup } from './javascript/core/group-loader.js';
 import { resetBrowserZoom, setupMouseWheelZoom } from './javascript/core/utils.js';
-import { smartOpen } from './javascript/ui/pdf-viewer.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    const svgContainer = document.getElementById('main-svg');
-    if (svgContainer) {
-        svgContainer.addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.tagName === 'rect' && (target.getAttribute('data-hrsf') || target.getAttribute('data-path'))) {
-                const pdfPath = target.getAttribute('data-hrsf') || target.getAttribute('data-path');
-                if (pdfPath) {
-                    smartOpen({ path: pdfPath });
-                }
-            }
-        });
-    }
-});
-
-const updateBtn = document.getElementById('check-update-btn');
+const updateBtn = document.getElementById('update-btn');
 if (updateBtn) {
     updateBtn.addEventListener('click', () => {
         import('./javascript/core/update-checker.js').then(({ checkForUpdates }) => checkForUpdates());
@@ -58,16 +41,13 @@ function observeZIndexChanges() {
     let zoomTimeout;
     const shouldTriggerReset = (el) => {
         if (!el || !el.style) return false;
-        const zIndex = window.getComputedStyle(el).zIndex;
-        const display = window.getComputedStyle(el).display;
-        const visibility = window.getComputedStyle(el).visibility;
-        const opacity = window.getComputedStyle(el).opacity;
+        const cs = window.getComputedStyle(el);   // مرة واحدة (كانت 4 مرات مع كل تغيير في الـ DOM)
         return (
-            zIndex !== 'auto' &&
-            parseInt(zIndex) >= 10 &&
-            display !== 'none' &&
-            visibility !== 'hidden' &&
-            opacity !== '0'
+            cs.zIndex !== 'auto' &&
+            parseInt(cs.zIndex) >= 10 &&
+            cs.display !== 'none' &&
+            cs.visibility !== 'hidden' &&
+            cs.opacity !== '0'
         );
     };
 
@@ -171,8 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('✅ script.js تم تحميله بالكامل - جميع الوحدات جاهزة');
 });
-
-export { scan };
 
 // ==========================================
 // PWA Install Prompt Handler (Clean & Native)

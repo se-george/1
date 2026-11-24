@@ -140,6 +140,10 @@
         <span class="method-btn-icon">💾</span>
         <span class="method-btn-text">Google Drive</span>
       </button>
+      <button class="method-btn device-btn" id="open-device-btn" style="display:none">
+        <span class="method-btn-icon">📱</span>
+        <span class="method-btn-text">فتح من الجهاز</span>
+      </button>
     </div>
   </div>
 </div>
@@ -364,11 +368,9 @@
         <rect id="back-btn" x="112" y="160" width="800" height="70" rx="15" />
         <text x="512" y="195" id="back-btn-text" text-anchor="middle" dominant-baseline="middle">➡️ إلى الخريطة ➡️</text>
       </g>
-      <g class="update-section" style="text-align: center; margin: 20px;">
-        <button id="check-update-btn" style="padding: 10px 20px; background-color: #ffca28; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
-          🔄 التحقق من وجود تحديثات
-        </button>
-        <p id="update-status-text" style="margin-top: 10px; font-size: 14px; color: #555;"></p>
+      <g id="update-btn" style="cursor: pointer;">
+        <rect x="120" y="14" width="784" height="56" rx="10"/>
+        <text id="update-btn-text" x="512" y="43" text-anchor="middle" dominant-baseline="middle">🔄 التحقق من وجود تحديثات</text>
       </g>
     </g>
   </svg>

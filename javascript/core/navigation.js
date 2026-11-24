@@ -32,6 +32,13 @@ export function handleBackNavigation(e) {
     const currentState = getCurrentNavigationState();
     console.log('🔙 زر الرجوع - الحالة الحالية:', currentState);
 
+    // نافذة "اختر طريقة الفتح" مفتوحة؟ زر الرجوع يقفلها الأول
+    const methodPopup = document.getElementById('open-method-popup');
+    if (methodPopup && methodPopup.style.display === 'flex') {
+        import('../ui/pdf-viewer.js').then(({ closeOpenOptions }) => closeOpenOptions());
+        return;
+    }
+
     if (!currentState) {
         console.log('📱 لا توجد حالة - السماح بالخروج');
         return;
@@ -40,33 +47,10 @@ export function handleBackNavigation(e) {
     e.preventDefault();
 
     if (currentState.state === NAV_STATE.PDF_VIEW) {
-        console.log('📄 إغلاق PDF');
-        popNavigationState();
-
-        const overlay = document.getElementById("pdf-overlay");
-        const pdfViewer = document.getElementById("pdfFrame");
-
-        if (currentState.data.isPreview) {
-            // استدعاء ديناميكي لتجنب الاستيراد الدائري
-            import('../ui/pdf-viewer.js').then(({ closePDFPreview }) => {
-                closePDFPreview();
-            });
-        } else {
-            pdfViewer.src = "";
-            overlay.classList.add("hidden");
-            if (overlay.classList.contains('fullscreen-mode')) {
-                overlay.classList.remove('fullscreen-mode');
-            }
-        }
-
-        if (currentState.data.scrollPosition !== undefined) {
-            setTimeout(() => {
-                const scrollContainer = document.getElementById('scroll-container');
-                if (scrollContainer) {
-                    scrollContainer.scrollLeft = currentState.data.scrollPosition;
-                }
-            }, 100);
-        }
+        console.log('📄 إغلاق المعاينة');
+        // closePDFPreview بيعمل popNavigationState بنفسه — كانت بتتعمل هنا كمان فالحالة بتتشال مرتين
+        // وزر الرجوع اللي بعدها بيخرّج المستخدم من التطبيق
+        import('../ui/pdf-viewer.js').then(({ closePDFPreview }) => closePDFPreview());
         return;
     }
 
@@ -135,14 +119,15 @@ export function setupBackButton() {
         }
     });
 
+    // Esc بيقفل أي نافذة مفتوحة (للكمبيوتر)
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const pdfOverlay = document.getElementById('pdf-overlay');
-            if (pdfOverlay && pdfOverlay.classList.contains('fullscreen-mode')) {
-                import('../ui/pdf-viewer.js').then(({ toggleMozillaToolbar }) => {
-                    toggleMozillaToolbar();
-                });
-            }
+        if (e.key !== 'Escape') return;
+        const method = document.getElementById('open-method-popup');
+        const preview = document.getElementById('pdf-preview-popup');
+        if (method && method.style.display === 'flex') {
+            import('../ui/pdf-viewer.js').then(({ closeOpenOptions }) => closeOpenOptions());
+        } else if (preview && preview.style.display === 'flex') {
+            import('../ui/pdf-viewer.js').then(({ closePDFPreview }) => closePDFPreview());
         }
     });
 

@@ -193,7 +193,7 @@ export function processRect(r) {
     if (r.classList.contains('w')) r.setAttribute('width', '113.5');
     if (r.classList.contains('hw')) r.setAttribute('width', '56.75');
 
-    let href = r.getAttribute('data-href') || '';
+    let href = (r.getAttribute('data-href') || '').trim();   // مسافة زيادة في آخر الاسم كانت بتكسر الفتح والـ thumbnail
     if (href && href !== '#' && !href.startsWith('http')) {
         href = `${RAW_CONTENT_BASE}${href}`;
         r.setAttribute('data-href', href);

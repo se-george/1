@@ -149,22 +149,23 @@ const UserTracker = {
 
     getBrowserInfo() {
         const ua = navigator.userAgent;
-        let browser = 'Unknown';
-        if (ua.includes('Firefox')) browser = 'Firefox';
-        else if (ua.includes('Chrome') && !ua.includes('Edg')) browser = 'Chrome';
-        else if (ua.includes('Safari') && !ua.includes('Chrome')) browser = 'Safari';
-        else if (ua.includes('Edg')) browser = 'Edge';
-        else if (ua.includes('Opera') || ua.includes('OPR')) browser = 'Opera';
-        return browser;
+        if (ua.includes('SamsungBrowser')) return 'Samsung Internet';
+        if (ua.includes('Edg')) return 'Edge';
+        if (ua.includes('OPR') || ua.includes('Opera')) return 'Opera';
+        if (ua.includes('Firefox') || ua.includes('FxiOS')) return 'Firefox';
+        if (ua.includes('Chrome') || ua.includes('CriOS')) return 'Chrome';
+        if (ua.includes('Safari')) return 'Safari';
+        return 'Unknown';
     },
 
     getOSInfo() {
         const ua = navigator.userAgent;
+        // Android و iOS لازم يتفحصوا قبل Linux و Mac (الـ user agent بتاعهم بيحتوي الكلمتين)
+        if (ua.includes('Android')) return 'Android';
+        if (/iPhone|iPad|iPod/.test(ua)) return 'iOS';
         if (ua.includes('Win')) return 'Windows';
         if (ua.includes('Mac')) return 'MacOS';
         if (ua.includes('Linux')) return 'Linux';
-        if (ua.includes('Android')) return 'Android';
-        if (ua.includes('iOS')) return 'iOS';
         return 'Unknown';
     },
 
@@ -279,15 +280,19 @@ document.addEventListener('click', () => {
     UserTracker.clicksCount++;
 });
 
-// تتبع عمق التمرير
+// تتبع عمق التمرير — الخريطة بتتحرك أفقيًا جوّه #scroll-container مش في الـ window
 let maxScroll = 0;
-window.addEventListener('scroll', () => {
-    const scrollPercent = Math.round((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100);
-    if (scrollPercent > maxScroll) {
-        maxScroll = scrollPercent;
+document.addEventListener('scroll', (e) => {
+    const el = e.target;
+    if (!el || el.id !== 'scroll-container') return;
+    const range = el.scrollWidth - el.clientWidth;
+    if (range <= 0) return;
+    const percent = Math.min(100, Math.round((el.scrollLeft / range) * 100));
+    if (percent > maxScroll) {
+        maxScroll = percent;
         UserTracker.scrollDepth = maxScroll;
     }
-});
+}, true);
 
 window.addEventListener('load', async () => {
     await UserTracker.generateFingerprint();

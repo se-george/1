@@ -3,7 +3,8 @@
 // ============================================
 
 import { PersonalRecord, sendScoreToServer, fetchTop5 } from './leaderboard-core.js';
-import { renderLeaderboard, loadLiveLeaderboard, refreshPersonalRecordUI } from './leaderboard-ui.js';
+import { renderLeaderboard, renderLiveLeaderboard, loadLiveLeaderboard, refreshPersonalRecordUI } from './leaderboard-ui.js';
+import { getPlayerName, getDeviceId } from '../core/utils.js';
 
 export function initializeMiniGame() {
     // الحصول على عناصر اللعبة
@@ -38,8 +39,7 @@ export function initializeMiniGame() {
     let spawnInterval = 1800;
     let spawnerIntervalId = null;
 
-    const playerName = localStorage.getItem('player_name') || 'زائر';
-    const deviceId = localStorage.getItem('device_id') || 'unknown';
+    const deviceId = getDeviceId();   // (كانت بتقرا مفاتيح مش موجودة فكل النتايج كانت بتتبعت باسم 'زائر')
 
     // تحديث الرقم القياسي في الواجهة
     refreshPersonalRecordUI('personalRecordValue');
@@ -162,6 +162,7 @@ export function initializeMiniGame() {
     // ===== إنهاء اللعبة =====
     async function endGame() {
         gameActive = false;
+        const playerName = getPlayerName();
         if (spawnerIntervalId) {
             clearInterval(spawnerIntervalId);
             spawnerIntervalId = null;
@@ -196,7 +197,7 @@ export function initializeMiniGame() {
         }
 
         if (liveLeaderboardList) {
-            renderLeaderboard(liveLeaderboardList, top5, deviceId); // أو loadLiveLeaderboard لتحديث
+            renderLiveLeaderboard(liveLeaderboardList, top5, deviceId, false, liveLeaderboardStatus);
         }
 
         if (typeof window.trackGameScore === 'function') {

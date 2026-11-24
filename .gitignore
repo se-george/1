@@ -1,1 +1,8 @@
-IS/Media/*.mp4
+# ملفات بتتولد وقت بناء الـ APK — مش بتترفع
+node_modules/
+android/
+ios/
+www/
+package-lock.json
+*.apk
+*.keystore
