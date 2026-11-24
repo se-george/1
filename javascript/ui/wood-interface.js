@@ -16,13 +16,9 @@ import {
     setupResetButton,
     setupMoveToggleButton,
     setupSearchIcon,
-    setupBackButtonInSVG,
-    setupInteractionToggle
+    setupBackButtonInSVG
 } from './ui-controls.js';
 import { setupSearchInput, setupEyeToggleSystem } from './search-and-eye.js';
-
-// ---------- متغير التفاعل ----------
-export let interactionEnabled = true;
 
 // ---------- الامتدادات المسموح بعرضها --------
 const ALLOWED_EXTENSIONS = [
@@ -357,7 +353,8 @@ export async function updateWoodInterface() {
     const scrollContainerGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
     scrollContainerGroup.setAttribute("class", "scroll-container-group");
 
-    const oldClips = mainSvg.querySelectorAll('clipPath[id^="window-clip"]');
+    // بنشيل clipPaths الإطار وكروت الصور (imgclip-*) — الأخيرة كانت بتتراكم في <defs> مع كل إعادة رسم
+    const oldClips = mainSvg.querySelectorAll('clipPath[id^="window-clip"], clipPath[id^="imgclip-"]');
     oldClips.forEach(clip => clip.remove());
 
     const clipPathId = "window-clip-" + Date.now();
@@ -941,7 +938,6 @@ export function initWoodUI() {
 
     setupBackButtonInSVG(() => currentFolder, setCurrentFolder, updateWoodInterface);
 
-    setupInteractionToggle();
     setupSearchInput(updateWoodInterface);
     setupEyeToggleSystem();
 }

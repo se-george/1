@@ -3,7 +3,6 @@
 // ============================================
 
 import { RAW_CONTENT_BASE, isTouchDevice, TAP_THRESHOLD_MS } from '../core/config.js';
-import { interactionEnabled } from '../ui/wood-interface.js';
 import { getCumulativeTranslate, getGroupImage, wrapText } from '../core/utils.js';
 import { smartOpen } from '../ui/pdf-viewer.js';
 
@@ -40,7 +39,7 @@ export function cleanupHover() {
 
 // ---------- بدء تأثير الهوفر ----------
 export function startHover() {
-    if (!interactionEnabled || this.classList.contains('list-item')) return;
+    if (this.classList.contains('list-item')) return;
     if (document.body.classList.contains('disable-hover')) return;
 
     const mainSvg = document.getElementById('main-svg');
@@ -257,15 +256,13 @@ export function processRect(r) {
     const scrollContainer = document.getElementById('scroll-container');
     if (scrollContainer) {
         r.addEventListener('touchstart', function (e) {
-            if (!interactionEnabled) return;
-            // 🆕 فحص سويتش الـ Hover
+            // 🆕 فحص سويتش الـ Hover (المصدر الوحيد: body.disable-hover)
             if (document.body.classList.contains('disable-hover')) return;
             activeState.touchStartTime = Date.now();
             activeState.initialScrollLeft = scrollContainer.scrollLeft;
             startHover.call(this);
         });
         r.addEventListener('touchend', function (e) {
-            if (!interactionEnabled) return;
             if (Math.abs(scrollContainer.scrollLeft - activeState.initialScrollLeft) < 10 &&
                 (Date.now() - activeState.touchStartTime) < TAP_THRESHOLD_MS) {
                 openFile();

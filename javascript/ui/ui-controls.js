@@ -126,12 +126,3 @@ export function setupBackButtonInSVG(getCurrentFolder, setCurrentFolder, updateW
         };
     }
 }
-
-export function setupInteractionToggle() {
-    const jsToggle = document.getElementById('js-toggle');
-    if (jsToggle) {
-        jsToggle.addEventListener('change', function () {
-            window.interactionEnabled = this.checked;
-        });
-    }
-}

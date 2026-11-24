@@ -2,10 +2,23 @@
 // scroll-system.js - نظام التمرير الرأسي
 // ============================================
 
+// listeners الـ document بتتشال مع كل استدعاء جديد (كانت بتتراكم مع كل إعادة رسم: بحث / فتح مجلد)
+let teardownPrevious = null;
+
 export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGroup, maxScroll, totalContentHeight) {
+    if (teardownPrevious) {
+        teardownPrevious();
+        teardownPrevious = null;
+    }
+
     let scrollOffset = 0;
 
     if (maxScroll <= 0) return;
+
+    const listeners = new AbortController();
+    teardownPrevious = () => listeners.abort();
+    const onDocument = (type, handler, options) =>
+        document.addEventListener(type, handler, { ...options, signal: listeners.signal });
 
     // --- شريط التمرير (مرئي) ---
     const scrollBarGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -91,7 +104,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
         e.stopPropagation();
     });
 
-    document.addEventListener('mousemove', (e) => {
+    onDocument('mousemove', (e) => {
         if (!dragState.active) return;
         const deltaY = e.clientY - dragState.startY;
 
@@ -111,7 +124,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
         }
     });
 
-    document.addEventListener('mouseup', (e) => {
+    onDocument('mouseup', (e) => {
         if (!dragState.active) return;
 
         if (!dragState.moved) {
@@ -153,7 +166,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
         e.stopPropagation();
     }, { passive: true });
 
-    document.addEventListener('touchmove', (e) => {
+    onDocument('touchmove', (e) => {
         if (!dragState.active) return;
         const deltaY = e.touches[0].clientY - dragState.startY;
 
@@ -174,7 +187,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
         }
     }, { passive: false });
 
-    document.addEventListener('touchend', (e) => {
+    onDocument('touchend', (e) => {
         if (!dragState.active) return;
 
         if (!dragState.moved) {
@@ -200,7 +213,11 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
     // ==================== عجلة الماوس ====================
     scrollContainerGroup.addEventListener('wheel', (e) => {
         e.preventDefault();
-        updateScroll(scrollOffset + e.deltaY);
+        // من غير stopPropagation كان #scroll-container (setupMouseWheelZoom في utils.js) بيزوّم الخريطة مع كل تمريرة للقائمة
+        e.stopPropagation();
+        // Firefox بيبعت deltaMode=1 (سطور) بدل بكسلات
+        const deltaPx = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
+        updateScroll(scrollOffset + deltaPx);
     }, { passive: false });
 
     // --- ترتيب الإضافة ---
