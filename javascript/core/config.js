@@ -9,7 +9,7 @@ export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_
 export const TREE_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/git/trees/main?recursive=1`;
 export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/main/`;
 
-export const GROUP_IMAGE_NAMES = ['1.webp', '01.webp'];
+export const GROUP_IMAGE_NAMES = ['01.webp'];
 
 const mapImageKey = (groupLetter) => `map_img:${groupLetter}`;
 
@@ -32,14 +32,13 @@ function mapVersions(maps) {
         .sort((a, b) => b.from - a.from);
 }
 
-// ترجع [الصورة الأساسية للأسبوع, ...بدائل]: آخر نسخة بدأت في أسبوع ≤ week ثم اللي قبلها ثم الأسماء القديمة (1.webp / 01.webp)
 export const weekImagePaths = (groupLetter, week, maps) => {
     const dir = `image/${groupLetter}/`;
     const chain = [];
     for (const v of mapVersions(maps)) {
         if (v.from > week) continue;
         if (v.file) chain.push(dir + v.file);
-        else chain.push(`${dir}${pad2(v.from)}.webp`, `${dir}${v.from}.webp`);
+        else chain.push(`${dir}${pad2(v.from)}.webp`);
     }
     return [...new Set([...chain, ...groupImagePaths(groupLetter)])];
 };
