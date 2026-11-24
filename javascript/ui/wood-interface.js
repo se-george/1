@@ -782,7 +782,7 @@ export function renderNameInput() {
     const containerWidth = 1024;
     const inputWidth = 780;
     const centerX = (containerWidth - inputWidth) / 2;
-    const inputY = 2404;
+    const inputY = 2384;
 
     const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     bg.setAttribute("x", centerX);
