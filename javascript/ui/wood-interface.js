@@ -368,7 +368,7 @@ export async function updateWoodInterface() {
     clipRect.setAttribute("x", "120");
     clipRect.setAttribute("y", "250");
     clipRect.setAttribute("width", "780");
-    clipRect.setAttribute("height", "2204"); 
+    clipRect.setAttribute("height", "2101"); 
     clipRect.setAttribute("rx", "15");
 
     clipPath.appendChild(clipRect);
@@ -750,7 +750,7 @@ export async function updateWoodInterface() {
 
     yPosition += BOTTOM_PADDING;
     const totalContentHeight = yPosition - 250;
-    const needsScroll = totalContentHeight > 2204; 
+    const needsScroll = totalContentHeight > 2101; 
 
     if (needsScroll) {
         const nameInputGroup = dynamicGroup.querySelector('.name-input-group');
@@ -762,7 +762,7 @@ export async function updateWoodInterface() {
     scrollContainerGroup.appendChild(separatorGroup);
     scrollContainerGroup.appendChild(scrollContent);
 
-    const maxScroll = Math.max(0, totalContentHeight - 2204); 
+    const maxScroll = Math.max(0, totalContentHeight - 2101); 
     addScrollSystem(scrollContainerGroup, scrollContent, separatorGroup, maxScroll, totalContentHeight);
 
     dynamicGroup.appendChild(scrollContainerGroup);

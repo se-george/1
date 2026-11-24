@@ -15,11 +15,11 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
     scrollBarBg.setAttribute("x", "910");
     scrollBarBg.setAttribute("y", "250");
     scrollBarBg.setAttribute("width", "12");
-    scrollBarBg.setAttribute("height", "1700");
+    scrollBarBg.setAttribute("height", "2101");
     scrollBarBg.setAttribute("rx", "6");
     scrollBarBg.style.fill = "rgba(255,255,255,0.1)";
 
-    const handleHeight = Math.max(80, (1700 / totalContentHeight) * 1700);
+    const handleHeight = Math.max(80, (2101 / totalContentHeight) * 2101);
 
     const scrollBarHandle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     scrollBarHandle.setAttribute("x", "908");
@@ -37,7 +37,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
         scrollContent.setAttribute("transform", `translate(0, ${-scrollOffset})`);
         separatorGroup.setAttribute("transform", `translate(0, ${-scrollOffset})`);
         const scrollRatio = scrollOffset / maxScroll;
-        const handleY = 250 + scrollRatio * (1700 - handleHeight);
+        const handleY = 250 + scrollRatio * (2101 - handleHeight);
         scrollBarHandle.setAttribute("y", handleY);
     }
 
@@ -46,7 +46,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
     dragOverlay.setAttribute("x", "120");
     dragOverlay.setAttribute("y", "250");
     dragOverlay.setAttribute("width", "800");
-    dragOverlay.setAttribute("height", "1700");
+    dragOverlay.setAttribute("height", "2101");
     dragOverlay.setAttribute("fill", "transparent");
     dragOverlay.style.cursor = "grab";
     dragOverlay.setAttribute("class", "drag-overlay");
@@ -101,7 +101,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
 
         if (dragState.moved) {
             if (dragState.isHandleDrag) {
-                const ratio = deltaY / (1700 - handleHeight);
+                const ratio = deltaY / (2101 - handleHeight);
                 updateScroll(dragState.startOffset + ratio * maxScroll);
             } else {
                 const scaleY = getSvgScaleY();
@@ -163,7 +163,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
 
         if (dragState.moved) {
             if (dragState.isHandleDrag) {
-                const ratio = deltaY / (1700 - handleHeight);
+                const ratio = deltaY / (2101 - handleHeight);
                 updateScroll(dragState.startOffset + ratio * maxScroll);
             } else {
                 const scaleY = getSvgScaleY();
