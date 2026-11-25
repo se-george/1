@@ -47,14 +47,24 @@ export function normalizeArabic(text) {
         .trim();
 }
 
+// الـ RegExp بتتبني مرة واحدة هنا (كانت بتتبني — مع الـ escape بتاعها — في كل استدعاء، وautoTranslate
+// بتتنادى لكل ملف × كل مجلد × كل حرف بحث). replace مع regex عليه g بيصفّر lastIndex لوحده فالمشاركة آمنة.
+const translationRules = Object.entries(translationMap).map(([en, ar]) => {
+    const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // المفاتيح القصيرة (IS / bio) لازم تكون كلمة كاملة، وإلا بتتطابق جوّه أي كلمة فيها "is"
+    const pattern = /^[a-z]{1,3}$/i.test(en) ? `(?<![a-z])${escaped}(?![a-z])` : escaped;
+    return [new RegExp(pattern, 'gi'), ar];
+});
+
+const translateCache = new Map();
+
 export function autoTranslate(filename) {
     if (!filename) return '';
+    const cached = translateCache.get(filename);
+    if (cached !== undefined) return cached;
+
     let arabic = filename.toLowerCase();
-    for (let [en, ar] of Object.entries(translationMap)) {
-        const escaped = en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // المفاتيح القصيرة (IS / bio) لازم تكون كلمة كاملة، وإلا بتتطابق جوّه أي كلمة فيها "is"
-        const pattern = /^[a-z]{1,3}$/i.test(en) ? `(?<![a-z])${escaped}(?![a-z])` : escaped;
-        const regex = new RegExp(pattern, 'gi');
+    for (const [regex, ar] of translationRules) {
         arabic = arabic.replace(regex, ar);
     }
     arabic = arabic
@@ -63,7 +73,17 @@ export function autoTranslate(filename) {
         .replace(/-/g, ' ')
         .replace(/_/g, ' ')
         .trim();
+
+    if (translateCache.size > 20000) translateCache.clear();   // حد أمان بس — الأسماء محدودة بعدد ملفات الريبو
+    translateCache.set(filename, arabic);
     return arabic;
+}
+
+// تهريب نص قبل ما يدخل innerHTML (أسماء من مستخدمين / بيانات خارجية)
+export function escapeHTML(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
 }
 
 // ------------------------------

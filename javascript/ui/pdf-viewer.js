@@ -59,6 +59,11 @@ function loadImage(url) {
 const previewErrorMessage = (error) =>
     error && error.name === 'MissingPDFException' ? '❌ الملف غير موجود' : '❌ فشل التحميل';
 
+// PDF.js بيفتح PDF بس. من غير الفحص ده كان أي ملف تاني (فيديو / صوت / pptx) بيتحمّل كامل
+// (disableRange) وبعدين يفشل — استهلاك نت على الفاضي.
+const isPdfPath = (path) => /\.pdf$/i.test(path);
+const NO_PREVIEW_TEXT = '📎 لا توجد معاينة لهذا النوع من الملفات';
+
 let previewToken = 0; 
 let methodToken = 0;  
 
@@ -109,6 +114,7 @@ export async function showPDFPreview(item) {
     console.log('🔍 معاينة:', url);
 
     const token = ++previewToken;
+    let pdf = null;   // بيتقفل في finally (كان بيفضل محمّل في الـ worker بعد كل معاينة)
 
     try {
         const thumbUrl = getThumbUrl(item.path);
@@ -116,7 +122,11 @@ export async function showPDFPreview(item) {
         let imgData = thumbImg ? thumbImg.src : null;
 
         if (!imgData) {
-            const pdf = await loadPdfDocument(url);
+            if (!isPdfPath(item.path)) {
+                if (loading) loading.textContent = NO_PREVIEW_TEXT;
+                return;
+            }
+            pdf = await loadPdfDocument(url);
             console.log('📄 PDF محمل:', pdf.numPages, 'صفحة');
 
             const page = await pdf.getPage(1);
@@ -180,6 +190,8 @@ export async function showPDFPreview(item) {
 
         canvas.parentNode.appendChild(errorMsg);
         if (loading) loading.classList.add('hidden');
+    } finally {
+        if (pdf) pdf.destroy();
     }
 }
 
@@ -243,6 +255,7 @@ export function showOpenOptions(item) {
     if (canvas) {
         const token = ++methodToken;
         (async () => {
+            let pdf = null;   // بيتقفل في finally
             try {
                 const thumbUrl = getThumbUrl(item.path);
                 const thumbImg = thumbUrl ? await loadImage(thumbUrl) : null;
@@ -253,7 +266,11 @@ export function showOpenOptions(item) {
                     canvas.height = thumbImg.naturalHeight;
                     canvas.getContext('2d', { alpha: false, willReadFrequently: true }).drawImage(thumbImg, 0, 0);
                 } else {
-                    const pdf = await loadPdfDocument(url);
+                    if (!isPdfPath(item.path)) {
+                        if (loading) loading.textContent = NO_PREVIEW_TEXT;
+                        return;
+                    }
+                    pdf = await loadPdfDocument(url);
                     const page = await pdf.getPage(1);
                     if (token !== methodToken) return;
                     const viewport = page.getViewport({ scale: 1.5 });
@@ -278,6 +295,8 @@ export function showOpenOptions(item) {
                 if (token !== methodToken) return;
                 console.error('❌ خطأ في المعاينة المصغرة:', error);
                 if (loading) loading.textContent = previewErrorMessage(error);
+            } finally {
+                if (pdf) pdf.destroy();
             }
         })();
     }

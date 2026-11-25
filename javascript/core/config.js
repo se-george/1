@@ -3,6 +3,8 @@
 // ============================================
 
 export const REPO_NAME = "1";
+// الاسم اللي بيتعرض للمستخدم (REPO_NAME اسم الريبو على GitHub وبيدخل في روابط الـ API بس)
+export const APP_TITLE = "CS26";
 export const GITHUB_USER = "se-george";
 
 export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents`;

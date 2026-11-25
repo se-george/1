@@ -393,22 +393,18 @@ if ('serviceWorker' in navigator) {
         // فحص التحديثات فوراً عند تحميل الصفحة
         registration.update();
 
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              if (confirm('🔄 يوجد تحديث جديد. هل تريد إعادة التحميل؟')) {
-                newWorker.postMessage({ action: 'skipWaiting' });
-              }
-            }
-          });
-        });
+        // من غير confirm: sw.js بيفعّل نفسه (skipWaiting في install + clients.claim في activate)،
+        // فالـ reload بيحصل في controllerchange تحت سواء المستخدم وافق أو لأ — السؤال كان شكلي.
       })
       .catch(err => console.error('❌ فشل تسجيل SW:', err));
   });
 
+  // أول تثبيت: الـ SW بيعمل claim فبيطلع controllerchange من غير ما يكون فيه تحديث، والـ reload وقتها
+  // كان بيقطع شاشة التحميل الأولى. بنعمل reload بس لو الصفحة كان عليها SW قبل كده (يعني تحديث فعلًا).
+  let hadController = !!navigator.serviceWorker.controller;
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) { hadController = true; return; }
     if (refreshing) return;
     refreshing = true;
     window.location.reload();

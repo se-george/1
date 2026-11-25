@@ -3,6 +3,7 @@
 // ============================================
 
 import { fetchTop5, LeaderboardCache, PersonalRecord } from './leaderboard-core.js';
+import { escapeHTML } from '../core/utils.js';
 
 // عرض قائمة Top5 في عنصر HTML (يستخدم في overlay)
 export function renderLeaderboard(listEl, top5, currentDeviceId) {
@@ -21,8 +22,8 @@ export function renderLeaderboard(listEl, top5, currentDeviceId) {
         const cur = e.device_id === currentDeviceId ? 'current-player' : '';
         return `<li class="leaderboard-item ${topClass} ${cur}">
             <span class="leaderboard-rank">${medal} #${i + 1}</span>
-            <span class="leaderboard-name">${e.name}</span>
-            <span class="leaderboard-score">${e.score} ⭐</span>
+            <span class="leaderboard-name">${escapeHTML(e.name)}</span>
+            <span class="leaderboard-score">${escapeHTML(e.score)} ⭐</span>
         </li>`;
     }).join('');
 }
@@ -44,8 +45,8 @@ export function renderLiveLeaderboard(listEl, top5, currentDeviceId, fromCache =
         const cur = e.device_id === currentDeviceId ? 'lb-current' : '';
         return `<li class="live-lb-item ${rankClass} ${cur}" style="animation-delay:${i * 60}ms">
             <span class="live-lb-rank">${EMOJIS[i]}</span>
-            <span class="live-lb-name">${e.name}</span>
-            <span class="live-lb-score">${e.score} ⭐</span>
+            <span class="live-lb-name">${escapeHTML(e.name)}</span>
+            <span class="live-lb-score">${escapeHTML(e.score)} ⭐</span>
         </li>`;
     }).join('');
     if (statusEl) {
