@@ -3,7 +3,7 @@
 // =============================================
 // ✅ عند كل تحديث: غيّر رقم الإصدار في سطر CACHE_NAME بس (watch-cache.sh بيراقب السطر ده)
 const CACHE_FAMILY = 'semester-1';                  // ثابت — أي كاش بيبدأ بـ 'semester-1-' بتاعنا وبيتنضف تلقائيًا
-const CACHE_NAME = CACHE_FAMILY + '-cache-v32';
+const CACHE_NAME = CACHE_FAMILY + '-cache-v33';
 const CONTENT_CACHE = CACHE_FAMILY + '-content';
 
 const RAW_HOST = 'raw.githubusercontent.com';    
@@ -317,6 +317,10 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(request.url);
     if (url.pathname.endsWith('/sw.js')) return;
+
+    // فحص التحديثات (commits / releases) لازم ياخد الرد الحالي من الشبكة دايمًا —
+    // networkFirst كان بيرجّع نسخة قديمة من الكاش لو الشبكة أبطأ من NETWORK_TIMEOUT_MS فالتحديث الجديد ما كانش بيظهر
+    if (url.hostname === API_HOST && /\/(commits|releases)\//.test(url.pathname)) return;
 
     // ✅ Network First لملفات الـ HTML لضمان تحديثها دائماً (تجاوز الكاش)
     if (request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname === '/') {

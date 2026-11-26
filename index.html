@@ -11,9 +11,8 @@
   <meta property="og:description" content="خريطة تفاعلية لعرض محاضرات وسكاشن الفرقة الأولي - الفصل الدراسي الأول">
   <meta property="og:locale" content="ar_AR">
 
-  <!-- PWA / Mobile -->
+  <!-- Mobile / iOS -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="S1 Map">
   <meta name="theme-color" content="#000000">
@@ -73,9 +72,6 @@
   <link rel="apple-touch-icon" sizes="152x152" href="image/0.webp">
   <link rel="apple-touch-icon" sizes="180x180" href="image/0.webp">
   <link rel="apple-touch-icon" sizes="167x167" href="image/0.webp">
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
 
   <!-- Styles -->
   <link rel="stylesheet" href="style.css">
@@ -139,10 +135,6 @@
       <button class="method-btn drive-btn" id="open-drive-btn">
         <span class="method-btn-icon">💾</span>
         <span class="method-btn-text">Google Drive</span>
-      </button>
-      <button class="method-btn device-btn" id="open-device-btn" style="display:none">
-        <span class="method-btn-icon">📱</span>
-        <span class="method-btn-text">فتح من الجهاز</span>
       </button>
     </div>
   </div>
@@ -282,26 +274,6 @@
 
 <div id="eye-toggle-standalone" class="top">👁️</div>
 
-<!-- 📲 زر تثبيت PWA - منتصف أعلى الشاشة -->
-<button id="pwa-install-btn" type="button"
-        style="display: none;
-               position: fixed;
-               top: 0;
-               left: 50%;
-               transform: translateX(-50%);
-               z-index: 100;
-               padding: 10px 28px;
-               border: none;
-               border-radius: 0 0 20px 20px;
-               background: linear-gradient(135deg, #ffcc00, #ff9800);
-               color: #000;
-               font-weight: bold;
-               font-size: 14px;
-               cursor: pointer;
-               box-shadow: 0 4px 15px rgba(255, 204, 0, 0.5);
-               transition: box-shadow 0.2s ease, transform 0.2s ease;">
-  📲 تثبيت التطبيق
-</button>
 <!-- شاشة التحميل -->
 <div id="loading-overlay">
   <div id="loading-content">
@@ -370,8 +342,12 @@
         <text x="512" y="195" id="back-btn-text" text-anchor="middle" dominant-baseline="middle">➡️ إلى الخريطة ➡️</text>
       </g>
       <g id="update-btn" style="cursor: pointer;">
-        <rect x="120" y="14" width="784" height="56" rx="10"/>
-        <text id="update-btn-text" x="512" y="43" text-anchor="middle" dominant-baseline="middle">🔄 التحقق من وجود تحديثات</text>
+        <rect x="520" y="14" width="384" height="56" rx="10"/>
+        <text id="update-btn-text" x="712" y="43" text-anchor="middle" dominant-baseline="middle">🌐 تحديث الموقع</text>
+      </g>
+      <g id="app-btn" style="cursor: pointer;">
+        <rect x="120" y="14" width="384" height="56" rx="10"/>
+        <text id="app-btn-text" x="312" y="43" text-anchor="middle" dominant-baseline="middle">📱 تحميل التطبيق</text>
       </g>
     </g>
   </svg>
@@ -453,23 +429,6 @@ window.addEventListener('load', checkForUpdates);
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) checkForUpdates();
 });
-</script>
-
-<!-- PWA Install Prompt Listener -->
-<script>
-(function () {
-  window._pwaPrompt = null;
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window._pwaPrompt = e;
-    console.log('✅ [inline] beforeinstallprompt جاهز');
-    window.dispatchEvent(new Event('pwaInstallReady'));
-  });
-  window.addEventListener('appinstalled', () => {
-    window._pwaPrompt = null;
-    console.log('✅ التطبيق مثبت بالفعل');
-  });
-})();
 </script>
 
 <!-- iOS Install Banner Logic -->

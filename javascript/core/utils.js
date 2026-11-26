@@ -270,6 +270,14 @@ export function getThumbUrl(path) {
     return `${RAW_CONTENT_BASE}${encoded}?v=${sha.slice(0, 8)}`;
 }
 
+// رابط الملف على raw.githubusercontent: بيشيل "./" ويرمّز كل جزء من المسار
+// (مسافة / # / % / ? في اسم الملف كانت بتكسر الرابط في المعاينة وفتح Drive)
+export function rawFileUrl(path) {
+    const clean = String(path || '').trim();
+    if (/^https?:\/\//i.test(clean)) return clean;
+    return RAW_CONTENT_BASE + clean.replace(/^(\.?\/)+/, '').split('/').map(encodeURIComponent).join('/');
+}
+
 // ------------------------------
 // 11. مسح الكاش — من خلال الـ Service Worker فقط
 // ------------------------------

@@ -1,35 +1,61 @@
 // ============================================
-// update-checker.js - زر "🔄 التحقق من وجود تحديثات"
+// update-checker.js - زرّين التحديث أعلى صفحة الخشب
 // ============================================
-// 1) تحديث الموقع (PWA، وكمان الـ APK لأنه بيفتح الموقع): بنقارن آخر commit على main
-//    بالمحفوظ. لو اتغير → نمسح الكاش ونعيد التحميل. (نفس منطق الفحص التلقائي في index.html
-//    بس من غير فترة الانتظار، لأن المستخدم داس الزر بنفسه.)
-// 2) تحديث الـ APK نفسه (جوه التطبيق بس): بنقارن رقم النسخة المثبتة بآخر Release على GitHub.
+// 🌐 #update-btn  تحديث الموقع: بنقارن آخر commit على main بالمحفوظ. لو اتغير → نمسح الكاش ونعيد التحميل.
+//                 (شغال في المتصفح وجوه الـ APK، لأن الـ APK بيفتح الموقع نفسه.)
+// 📱 #app-btn     التطبيق (APK): بيعرض رقم آخر إصدار منشور في GitHub Releases دايمًا.
+//                 - في المتصفح: ضغطة واحدة = تنزيل مباشر لملف الـ APK.
+//                 - جوه التطبيق: بيقارن الإصدار المثبّت بآخر إصدار، ولو فيه أحدث الضغطة بتنزّله.
 
-import { GITHUB_USER, REPO_NAME } from './config.js';
+import { RELEASES_API_URL, RELEASES_PAGE_URL, apkDownloadUrl, GITHUB_USER, REPO_NAME } from './config.js';
 import { clearAppCaches } from './utils.js';
 import { isNativeApp, getPlugin } from '../features/sync-local.js';
 
 const API = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}`;
-const FALLBACK_APP_VERSION = '1.0.0';    // لو معرفناش نقرا رقم نسخة التطبيق من النظام
-
-let checking = false;
-let clearTimer = null;
+const RELEASE_CACHE_KEY = 'app_release_cache';
+// حد GitHub API من غير توكن = 60 طلب/ساعة لكل IP (وشبكات الموبايل بتتشارك الـ IP) فبنخزّن آخر إصدار
+const RELEASE_TTL_MS = 30 * 60 * 1000;
+const BUTTON_TEXT_MAX_WIDTH = 360;      // عرض الزر 384 − هامش
 
 const lsGet = (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } };
 const lsSet = (key, value) => { try { localStorage.setItem(key, value); } catch (e) { /* التخزين مقفول */ } };
 const lsRemove = (key) => { try { localStorage.removeItem(key); } catch (e) { /* التخزين مقفول */ } };
 
-// الحالة بتظهر جوه الزر نفسه (بدل نص منفصل كانت لوحة البحث بتغطيه) وبترجع للاسم الأصلي بعد شوية
-let defaultLabel = null;
-function setStatus(text, autoClearMs = 8000) {
-    const el = document.getElementById('update-btn-text');
-    if (!el) return;
-    if (defaultLabel === null) defaultLabel = el.textContent;
-    clearTimeout(clearTimer);
-    el.textContent = text || defaultLabel;
-    if (text && autoClearMs) clearTimer = setTimeout(() => { el.textContent = defaultLabel; }, autoClearMs);
+// ---------- نص الزر (سطر واحد، ويصغّر الخط لو طويل) ----------
+function fitText(el, maxWidth) {
+    el.style.fontSize = '';
+    try {
+        let size = parseFloat(getComputedStyle(el).fontSize) || 24;
+        for (let i = 0; i < 8 && size > 12 && el.getComputedTextLength() > maxWidth; i++) {
+            size -= 2;
+            el.style.fontSize = size + 'px';
+        }
+    } catch (e) { /* العنصر مش معروض */ }
 }
+
+function createLabel(textId) {
+    let base = null;
+    let timer = null;
+    const label = {
+        // نص مؤقت (بيرجع للنص الأساسي بعد autoClearMs لو اتحدد)
+        set(text, autoClearMs = 0) {
+            const el = document.getElementById(textId);
+            if (!el) return;
+            if (base === null) base = el.textContent;
+            clearTimeout(timer);
+            el.textContent = text;
+            fitText(el, BUTTON_TEXT_MAX_WIDTH);
+            if (autoClearMs) timer = setTimeout(() => label.reset(), autoClearMs);
+        },
+        // النص الأساسي الجديد (اللي بيرجع له الزر)
+        setBase(text) { base = text; label.set(text); },
+        reset() { if (base !== null) label.set(base); }
+    };
+    return label;
+}
+
+const siteLabel = createLabel('update-btn-text');
+const appLabel = createLabel('app-btn-text');
 
 // GitHub API مع مهلة 10 ثواني. 404 → null (مثلاً مفيش Releases لسه)
 async function githubJson(url) {
@@ -47,6 +73,7 @@ async function githubJson(url) {
 
 // "v1.2.10" → [1, 2, 10]
 const versionParts = (v) => String(v || '').replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
+const tagLabel = (v) => 'v' + String(v || '').replace(/^[^\d]*/, '');
 
 export function isNewerVersion(latest, current) {
     const a = versionParts(latest);
@@ -58,7 +85,11 @@ export function isNewerVersion(latest, current) {
     return false;
 }
 
-// ---------- 1) تحديث الموقع ----------
+// ============================================
+// 🌐 تحديث الموقع
+// ============================================
+let siteBusy = false;
+
 // بترجع true لو لقت تحديث وبدأت إعادة التحميل
 async function checkWebUpdate() {
     const data = await githubJson(`${API}/commits/main`);
@@ -73,7 +104,7 @@ async function checkWebUpdate() {
         return false;
     }
 
-    setStatus('🆕 فيه تحديث جديد — جاري التطبيق...', 0);
+    siteLabel.set('🆕 تحديث جديد...');
     await clearAppCaches();
     lsSet('last_commit_sha', latest);
     lsRemove('preload_done');
@@ -81,71 +112,157 @@ async function checkWebUpdate() {
     return true;
 }
 
-// ---------- 2) تحديث الـ APK ----------
-async function getInstalledVersion() {
-    const App = getPlugin('App');
-    if (App) {
-        try {
-            const info = await App.getInfo();
-            if (info && info.version) return info.version;
-        } catch (e) { /* هنستخدم الاحتياطي */ }
+export async function checkForUpdates() {
+    if (siteBusy) return;
+    siteBusy = true;
+    siteLabel.set('⏳ جاري التحقق...');
+    try {
+        if (await checkWebUpdate()) return;          // الصفحة بتتعمل reload
+        siteLabel.set('✅ الموقع محدّث', 6000);
+    } catch (err) {
+        console.error('❌ خطأ أثناء التحقق من تحديث الموقع:', err);
+        siteLabel.set('⚠️ تعذر التحقق', 6000);
+    } finally {
+        siteBusy = false;
     }
-    return FALLBACK_APP_VERSION;
 }
 
-async function checkApkUpdate() {
-    const release = await githubJson(`${API}/releases/latest`);
+// ============================================
+// 📱 التطبيق (APK)
+// ============================================
+const appState = { native: false, release: null, installed: null };
+let appBusy = false;
+
+function readReleaseCache() {
+    try {
+        const cached = JSON.parse(lsGet(RELEASE_CACHE_KEY));
+        return cached && cached.tag && cached.url ? cached : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// بترجع { tag, url, notes, savedAt } أو null لو مفيش Release منشور
+async function fetchLatestRelease() {
+    const release = await githubJson(RELEASES_API_URL);
     if (!release || !release.tag_name) return null;
-
-    const installed = await getInstalledVersion();
-    if (!isNewerVersion(release.tag_name, installed)) return { upToDate: true, installed };
-
     const apk = (release.assets || []).find(a => /\.apk$/i.test(a.name));
     return {
-        upToDate: false,
-        installed,
-        version: release.tag_name,
-        url: apk ? apk.browser_download_url : release.html_url,
-        notes: release.body || ''
+        tag: release.tag_name,
+        url: apk ? apk.browser_download_url : apkDownloadUrl(release.tag_name),
+        notes: release.body || '',
+        savedAt: Date.now()
     };
 }
 
-async function openDownload(url) {
-    const Browser = getPlugin('Browser');
-    if (Browser) {
-        try { await Browser.open({ url }); return; } catch (e) { console.warn('⚠️ Browser.open فشل:', e); }
+async function getLatestRelease(force = false) {
+    const cached = readReleaseCache();
+    if (!force && cached && Date.now() - cached.savedAt < RELEASE_TTL_MS) return cached;
+    try {
+        const fresh = await fetchLatestRelease();
+        if (fresh) lsSet(RELEASE_CACHE_KEY, JSON.stringify(fresh));
+        else lsRemove(RELEASE_CACHE_KEY);
+        return fresh;
+    } catch (err) {
+        console.warn('⚠️ تعذر جلب آخر إصدار للتطبيق:', err);
+        return cached;                               // أوفلاين / تخطّينا حد الـ API: نعرض آخر إصدار معروف
     }
-    window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-// ---------- الزر ----------
-export async function checkForUpdates() {
-    if (checking) return;
-    checking = true;
-    setStatus('⏳ جاري التحقق من وجود تحديثات...', 0);
-
+async function getInstalledVersion() {
+    const App = getPlugin('App');
+    if (!App) return null;
     try {
-        if (await checkWebUpdate()) return;          // الصفحة بتتعمل reload
+        const info = await App.getInfo();
+        return (info && info.version) || null;
+    } catch (e) {
+        return null;
+    }
+}
 
-        let message = '✅ أنت على آخر نسخة';
-        if (isNativeApp()) {
-            const apk = await checkApkUpdate().catch(err => {
-                console.warn('⚠️ فحص تحديث التطبيق فشل:', err);
-                return null;
-            });
-            if (apk && !apk.upToDate) {
-                message = `🆕 يتوفر إصدار جديد من التطبيق (${apk.version})`;
-                const notes = apk.notes.trim().slice(0, 300) || 'تحسينات وإصلاحات.';
-                if (confirm(`إصدار جديد من التطبيق: ${apk.version}\n(المثبت عندك: ${apk.installed})\n\n${notes}\n\nتحميله الآن؟`)) {
-                    await openDownload(apk.url);
-                }
-            }
+function renderAppButton() {
+    const { native, release, installed } = appState;
+    let text = '📱 تحميل التطبيق';
+    let hasUpdate = false;
+
+    if (release) {
+        if (native && installed) {
+            hasUpdate = isNewerVersion(release.tag, installed);
+            text = hasUpdate ? `⬆️ تحديث التطبيق ${tagLabel(release.tag)}` : `✅ آخر إصدار ${tagLabel(installed)}`;
+        } else {
+            text = `📱 تحميل التطبيق ${tagLabel(release.tag)}`;
         }
-        setStatus(message);
+    }
+    document.getElementById('app-btn')?.classList.toggle('has-update', hasUpdate);
+    appLabel.setBase(text);
+    return hasUpdate;
+}
+
+// تنزيل مباشر لملف الـ APK: جوه التطبيق من خلال متصفح النظام، وفي المتصفح من خلال تبويب جديد
+async function openDownload(url) {
+    if (appState.native) {
+        const Browser = getPlugin('Browser');
+        if (Browser) {
+            try { await Browser.open({ url }); return; } catch (e) { console.warn('⚠️ Browser.open فشل:', e); }
+        }
+    }
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+// بيتنادى مرة واحدة عند فتح الموقع: يعرض آخر إصدار معروف فورًا (من الكاش) وبعدين يحدّثه
+export async function initUpdateButtons() {
+    appState.native = isNativeApp();
+    appState.release = readReleaseCache();
+    renderAppButton();
+
+    const [installed, release] = await Promise.all([
+        appState.native ? getInstalledVersion() : null,
+        getLatestRelease(false)
+    ]);
+    appState.installed = installed;
+    appState.release = release;
+    renderAppButton();
+}
+
+export async function onAppButtonClick() {
+    if (appBusy) return;
+    appBusy = true;
+    try {
+        // المتصفح: الرابط معروف → تنزيل مباشر من غير انتظار (وبنحدّث الرقم في الخلفية)
+        if (!appState.native) {
+            if (appState.release) {
+                await openDownload(appState.release.url);
+                getLatestRelease(true).then(release => { appState.release = release; renderAppButton(); });
+            } else {
+                await openDownload(RELEASES_PAGE_URL);          // الـ API مش متاح: صفحة الـ Releases
+            }
+            return;
+        }
+
+        // التطبيق: نتحقق الأول، ولو فيه إصدار أحدث ننزّله
+        appLabel.set('⏳ جاري التحقق...');
+        const release = await getLatestRelease(true);
+        appState.release = release;
+        if (!appState.installed) appState.installed = await getInstalledVersion();
+
+        if (!release) {
+            renderAppButton();
+            appLabel.set('⚠️ تعذر التحقق', 4000);
+        } else if (renderAppButton()) {
+            await openDownload(release.url);
+        } else {
+            appLabel.set('✅ أنت على آخر نسخة', 4000);
+        }
     } catch (err) {
-        console.error('❌ خطأ أثناء التحقق من التحديثات:', err);
-        setStatus('⚠️ تعذر التحقق — تأكد من الاتصال بالإنترنت');
+        console.error('❌ خطأ في زر التطبيق:', err);
+        appLabel.set('⚠️ تعذر التحقق', 4000);
     } finally {
-        checking = false;
+        appBusy = false;
     }
 }

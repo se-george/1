@@ -8,12 +8,14 @@ import { initPDFViewer } from './javascript/ui/pdf-viewer.js';
 import { initializeGroup } from './javascript/core/group-loader.js';
 import { resetBrowserZoom, setupMouseWheelZoom } from './javascript/core/utils.js';
 
-const updateBtn = document.getElementById('update-btn');
-if (updateBtn) {
-    updateBtn.addEventListener('click', () => {
-        import('./javascript/core/update-checker.js').then(({ checkForUpdates }) => checkForUpdates());
-    });
-}
+// زرّين التحديث أعلى صفحة الخشب: 🌐 الموقع + 📱 التطبيق (APK)
+const loadUpdater = () => import('./javascript/core/update-checker.js');
+document.getElementById('update-btn')?.addEventListener('click', () => {
+    loadUpdater().then(({ checkForUpdates }) => checkForUpdates());
+});
+document.getElementById('app-btn')?.addEventListener('click', () => {
+    loadUpdater().then(({ onAppButtonClick }) => onAppButtonClick());
+});
 
 function autoLoadLastGroup() {
     const preloadDone = localStorage.getItem('preload_done');
@@ -133,6 +135,11 @@ document.addEventListener('DOMContentLoaded', () => {
         observeZIndexChanges();
         updateWelcomeMessages();
 
+        // رقم آخر إصدار على زر التطبيق (من الكاش فورًا، وبعدين من GitHub)
+        loadUpdater()
+            .then(({ initUpdateButtons }) => initUpdateButtons())
+            .catch(err => console.warn('⚠️ تعذر تهيئة أزرار التحديث:', err));
+
         // ✅ تفعيل ميزة الزوم بعجلة الماوس
         setupMouseWheelZoom();
 
@@ -150,87 +157,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     console.log('✅ script.js تم تحميله بالكامل - جميع الوحدات جاهزة');
-});
-
-// ==========================================
-// PWA Install Prompt Handler (Clean & Native)
-// ==========================================
-let deferredPrompt = null;
-
-function showPWAInstallButton() {
-    const installBtn = document.getElementById('pwa-install-btn');
-    if (!installBtn) return;
-
-    // إخفاء الزر تماماً لو التطبيق مفتوح كتطبيق مستقل (متثبت بالفعل)
-    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-        installBtn.style.display = 'none';
-        return;
-    }
-
-    // إظهار الزر (يتم استدعاء هذه الدالة فقط عندما يكون المتصفح جاهزاً للتثبيت)
-    installBtn.style.display = 'inline-flex';
-
-    if (!installBtn.dataset.bound) {
-        installBtn.dataset.bound = 'true';
-        installBtn.addEventListener('click', async () => {
-            const promptEvent = deferredPrompt || window._pwaPrompt;
-            
-            // لو اختفى الحدث لأي سبب، نخرج بهدوء
-            if (!promptEvent) return; 
-
-            installBtn.style.display = 'none';
-            try {
-                promptEvent.prompt();
-                const result = await promptEvent.userChoice;
-                console.log('📲 نتيجة التثبيت:', result.outcome);
-                
-                // لو المستخدم رفض التثبيت، نخلي الزر يرجع بعد 30 ثانية
-                if (result.outcome !== 'accepted') {
-                    setTimeout(() => {
-                        if (!window.matchMedia('(display-mode: standalone)').matches) {
-                            installBtn.style.display = 'inline-flex';
-                        }
-                    }, 30000);
-                }
-            } catch (err) {
-                console.error('❌ خطأ في prompt():', err);
-            }
-            deferredPrompt = null;
-            window._pwaPrompt = null;
-        });
-    }
-}
-
-// 1) نستمع للحدث الرسمي من المتصفح (هنا فقط سيظهر الزر)
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    window._pwaPrompt = e;
-    console.log('✅ beforeinstallprompt جاهز - المتصفح يدعم التثبيت');
-    showPWAInstallButton();
-});
-
-// 2) الـ inline script في index.html بيبعت الحدث ده كـ fallback
-window.addEventListener('pwaInstallReady', () => {
-    if (window._pwaPrompt) {
-        deferredPrompt = window._pwaPrompt;
-        showPWAInstallButton();
-    }
-});
-
-// 3) لو الحدث اتطلق قبل ما الملف يتحمّل
-document.addEventListener('DOMContentLoaded', () => {
-    if (window._pwaPrompt) {
-        deferredPrompt = window._pwaPrompt;
-        showPWAInstallButton();
-    }
-});
-
-// 4) بعد التثبيت بنجاح، نخفي الزر فوراً
-window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    window._pwaPrompt = null;
-    const installBtn = document.getElementById('pwa-install-btn');
-    if (installBtn) installBtn.style.display = 'none';
-    console.log('🎉 تم تثبيت التطبيق بنجاح');
 });

@@ -1,24 +1,3 @@
-/* تنسيق زر تثبيت الموقع */
-#pwa-install-btn, .pwa-install-button {
-  background: linear-gradient(135deg, #ffcc00, #ff9800) !important;
-  color: #000 !important;
-  font-weight: bold !important;
-  padding: 8px 16px !important;
-  border-radius: 20px !important;
-  border: none !important;
-  cursor: pointer !important;
-  box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4) !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  z-index: 100;
-  transition: transform 0.2s ease;
-}
-
-#pwa-install-btn:hover {
-  transform: scale(1.05);
-}
-
 #main-svg text.m {
   text-anchor: middle;
   dominant-baseline: central;
@@ -453,8 +432,8 @@ html, body {
 .method-preview {
   background: #000;
   border-radius: 10px;
-  min-height: 300px;
-  max-height: 50vh;
+  height: min(52vh, 460px);
+  min-height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -464,8 +443,9 @@ html, body {
 }
 
 #method-preview-canvas {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
 }
 
@@ -485,6 +465,7 @@ html, body {
 }
 
 .method-filename {
+  unicode-bidi: plaintext;
   text-align: center;
   color: #ffcc00;
   font-size: 14px;
@@ -860,6 +841,7 @@ html, body {
 }
 
 .preview-title {
+  unicode-bidi: plaintext;
   color: #ffcc00;
   font-size: 18px;
   font-weight: bold;
@@ -1355,7 +1337,6 @@ img, image, svg, rect {
 
   .method-container { padding: 20px; }
   .method-header h2 { font-size: 18px; }
-  .method-preview   { height: 250px; }
   .method-btn       { padding: 8px 6px; font-size: 12px; }
   .method-btn-icon  { font-size: 18px; }
 }
@@ -1367,7 +1348,6 @@ img, image, svg, rect {
 
   .method-container { padding: 15px; max-width: 95%; }
   .method-header h2 { font-size: 16px; }
-  .method-preview   { height: 200px; }
   .method-btn       { padding: 8px 4px; font-size: 11px; }
   .method-btn-icon  { font-size: 16px; }
   .method-filename  { font-size: 12px; }
@@ -1574,33 +1554,56 @@ body.disable-hover .group-btn:hover .group-letter {
   transform: none !important;
 }
 /* ============================================
-   زر التحقق من التحديثات (SVG) + زر "فتح من الجهاز" (APK)
+   زرّين التحديث (SVG): 🌐 الموقع + 📱 التطبيق — كل واحد نص عرض الخشب
    ============================================ */
-#update-btn { cursor: pointer; pointer-events: auto; }
-#update-btn rect {
-  fill: #ffca28;
+#update-btn, #app-btn { cursor: pointer; pointer-events: auto; }
+#update-btn rect, #app-btn rect {
   stroke: none;
   pointer-events: auto;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8));
-  transition: filter 0.2s ease;
+  transition: filter 0.2s ease, fill 0.2s ease;
 }
+#update-btn rect { fill: #ffca28; }
+#app-btn rect    { fill: #66bb6a; }
 #update-btn:hover rect {
   filter: drop-shadow(0 6px 15px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 25px rgba(255, 204, 0, 0.8));
 }
-#update-btn text {
+#app-btn:hover rect {
+  filter: drop-shadow(0 6px 15px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 25px rgba(102, 187, 106, 0.8));
+}
+/* فيه إصدار أحدث من التطبيق: برتقالي ونبض خفيف */
+#app-btn.has-update rect {
+  fill: #ff9800;
+  animation: appUpdatePulse 1.6s ease-in-out infinite;
+}
+@keyframes appUpdatePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+#update-btn text, #app-btn text {
   pointer-events: none;
   user-select: none;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 900;
-  font-size: 26px;
+  font-size: 24px;
   fill: #000;
 }
-@media (max-width: 768px) { #update-btn text { font-size: 22px; } }
+@media (max-width: 768px) { #update-btn text, #app-btn text { font-size: 22px; } }
 
-.device-btn {
-  background: rgba(255, 152, 0, 0.2);
-  border-color: #ff9800;
-  color: #ff9800;
+/* رسالة سريعة (بدل alert) — z-index أقل من 10 عشان مراقب الـ z-index ما يعملش Reset Zoom */
+#app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 9;
+  max-width: 90vw;
+  padding: 10px 18px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.92);
+  border: 1px solid #ffca28;
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
-.device-btn:hover { background: rgba(255, 152, 0, 0.4); transform: translateY(-2px); }
-.device-btn:disabled { opacity: 0.6; pointer-events: none; }
+#app-toast.show { opacity: 1; }

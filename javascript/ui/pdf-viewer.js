@@ -2,9 +2,10 @@
 // pdf-viewer.js - معاينة PDF وفتحه بطرق متعددة
 // ============================================
 
-import { RAW_CONTENT_BASE, NAV_STATE } from '../core/config.js';
+import { NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState } from '../core/navigation.js';
-import { resetBrowserZoom, getThumbUrl, resetSvgZoom } from '../core/utils.js';
+import { resetBrowserZoom, getThumbUrl, resetSvgZoom, rawFileUrl } from '../core/utils.js';
+import { isNativeApp, syncAndOpenFile } from '../features/sync-local.js';
 
 export let currentPreviewItem = null;
 
@@ -70,6 +71,9 @@ let methodToken = 0;
 export async function showPDFPreview(item) {
     if (!item || !item.path) return;
 
+    // التطبيق: مفيش شاشة معاينة — الضغطة المطوّلة بتفتح الملف من الجهاز زي الضغطة العادية
+    if (isNativeApp()) { openOnDevice(item); return; }
+
     // ✅ إلغاء الزوم عند فتح المعاينة
     resetBrowserZoom();
     resetSvgZoom();
@@ -86,7 +90,7 @@ export async function showPDFPreview(item) {
 
     currentPreviewItem = item;
     const fileName = item.path.split('/').pop();
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const url = rawFileUrl(item.path);
 
     popup.classList.remove('hidden');
     popup.style.display = 'flex';
@@ -162,6 +166,7 @@ export async function showPDFPreview(item) {
         previewImg.style.maxHeight = '80vh';
         previewImg.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
         previewImg.style.borderRadius = '4px';
+        previewImg.style.background = '#fff';   // thumbnail شفاف كان بيبان على خلفية سودا
         previewImg.alt = `معاينة الصفحة الأولى من ${fileName}`;
 
         canvas.style.display = 'none';
@@ -232,7 +237,7 @@ export function showOpenOptions(item) {
 
     currentPreviewItem = item;
     const fileName = item.path.split('/').pop();
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const url = rawFileUrl(item.path);
 
     popup.classList.remove('hidden');
     popup.style.display = 'flex';
@@ -264,7 +269,11 @@ export function showOpenOptions(item) {
                     if (token !== methodToken) return;
                     canvas.width = thumbImg.naturalWidth;
                     canvas.height = thumbImg.naturalHeight;
-                    canvas.getContext('2d', { alpha: false, willReadFrequently: true }).drawImage(thumbImg, 0, 0);
+                    const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
+                    // الكانفاس alpha:false: أي شفافية في الـ thumbnail كانت بتطلع سودا (على عكس مسار PDF.js اللي بيملا أبيض الأول)
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(thumbImg, 0, 0);
                 } else {
                     if (!isPdfPath(item.path)) {
                         if (loading) loading.textContent = NO_PREVIEW_TEXT;
@@ -321,7 +330,7 @@ export function openWithDrive(item) {
     resetBrowserZoom();
     resetSvgZoom();
 
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const url = rawFileUrl(item.path);
     const driveUrl = `https://drive.google.com/viewerng/viewer?embedded=true&url=${encodeURIComponent(url)}`;
     window.open(driveUrl, '_blank', 'noopener,noreferrer');
 
@@ -343,7 +352,7 @@ export function openWithBrowser(item) {
     resetBrowserZoom();
     resetSvgZoom();
 
-    const url = `${RAW_CONTENT_BASE}${item.path}`;
+    const url = rawFileUrl(item.path);
 
     const a = document.createElement('a');
     a.href = url;
@@ -361,38 +370,60 @@ export function openWithBrowser(item) {
     console.log('🌐 فتح بالمتصفح (رابط مباشر):', url);
 }
 
-// تنزيل الملف على الجهاز (مرة واحدة) وفتحه بتطبيق الـ PDF — في الـ APK بس
+// ---------- رسالة سريعة (بدل alert) ----------
+let toastEl = null;
+let toastTimer = null;
+
+function hideToast() {
+    clearTimeout(toastTimer);
+    if (toastEl) toastEl.classList.remove('show');
+}
+
+function showToast(text, ms = 3000) {
+    if (!toastEl) {
+        toastEl = document.createElement('div');
+        toastEl.id = 'app-toast';
+        document.body.appendChild(toastEl);
+    }
+    clearTimeout(toastTimer);
+    toastEl.textContent = text;
+    toastEl.classList.add('show');
+    if (ms) toastTimer = setTimeout(hideToast, ms);
+}
+
+// تنزيل الملف على الجهاز (مرة واحدة، ويتجدد لو اتغير على GitHub) وفتحه بتطبيق الـ PDF — في الـ APK بس
+let deviceOpenBusy = false;
+
 export async function openOnDevice(item) {
-    if (!item || !item.path) return;
+    if (!item || !item.path || deviceOpenBusy) return;
+    deviceOpenBusy = true;
     resetBrowserZoom();
     resetSvgZoom();
-
-    const btn = document.getElementById('open-device-btn');
-    const label = btn && btn.querySelector('.method-btn-text');
-    const oldLabel = label ? label.textContent : '';
-    if (btn) btn.disabled = true;
-    if (label) label.textContent = '⏳ جاري التحميل...';
+    showToast('⏳ جاري فتح الملف...', 0);
 
     try {
-        const { syncAndOpenFile } = await import('../features/sync-local.js');
         const result = await syncAndOpenFile(item.path);
         if (result.ok) {
+            hideToast();
             if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
-            closeOpenOptions();
         } else {
-            alert(result.message || 'تعذر فتح الملف');
+            showToast(result.message || 'تعذر فتح الملف', 6000);
         }
     } catch (err) {
         console.error('❌ openOnDevice:', err);
-        alert('تعذر فتح الملف على الجهاز');
+        showToast('تعذر فتح الملف على الجهاز', 6000);
     } finally {
-        if (btn) btn.disabled = false;
-        if (label) label.textContent = oldLabel;
+        deviceOpenBusy = false;
     }
 }
 
+// الضغطة على ملف: التطبيق بيفتحه من الجهاز مباشرة، والمتصفح بيعرض شاشة اختيار الفتح (Browser / Drive)
 export function smartOpen(item) {
     if (!item || !item.path) return;
+    if (isNativeApp()) {
+        openOnDevice(item);
+        return;
+    }
     showOpenOptions(item);
 }
 
@@ -465,19 +496,6 @@ export function initPDFViewer() {
                 openWithDrive(currentPreviewItem);
             }
         });
-    }
-
-    // زر "فتح من الجهاز" بيظهر في تطبيق الـ APK بس
-    const deviceBtn = document.getElementById('open-device-btn');
-    if (deviceBtn) {
-        import('../features/sync-local.js').then(({ isNativeApp }) => {
-            if (!isNativeApp()) return;
-            deviceBtn.style.display = '';
-            deviceBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentPreviewItem) openOnDevice(currentPreviewItem);
-            });
-        }).catch(() => { /* مفيش دعم للتطبيق الأصلي — الزر يفضل مخفي */ });
     }
 
     console.log('✅ معالجات المعاينة والفتح جاهزة');

@@ -15,7 +15,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const WWW = join(ROOT, 'www');
 const CONFIG = join(ROOT, 'capacitor.config.json');
 
-const FILES = ['index.html', 'style.css', 'script.js', 'tracker.js', 'sw.js', 'manifest.json'];
+const FILES = ['index.html', 'style.css', 'script.js', 'tracker.js', 'sw.js'];   // manifest.json اتشال (مفيش PWA، التثبيت بالـ APK)
 const DIRS = ['javascript', 'image'];
 
 const mode = (process.env.MODE || 'live').trim().toLowerCase();

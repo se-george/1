@@ -11,6 +11,15 @@ export const NEW_API_BASE = `https://api.github.com/repos/${GITHUB_USER}/${REPO_
 export const TREE_API_URL = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/git/trees/main?recursive=1`;
 export const RAW_CONTENT_BASE = `https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/main/`;
 
+// ---- تحميل التطبيق (APK) من GitHub Releases ----
+export const RELEASES_API_URL  = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/releases/latest`;
+export const RELEASES_PAGE_URL = `https://github.com/${GITHUB_USER}/${REPO_NAME}/releases/latest`;
+// اسم ملف الـ APK جوه الـ Release: CS26-v1.0.1.apk (APP_TITLE + رقم الإصدار) — بيتستخدم بس لو الـ API ما رجّعش اسم الملف
+export const apkDownloadUrl = (tag) => {
+    const v = 'v' + String(tag).replace(/^[^\d]*/, '');
+    return `https://github.com/${GITHUB_USER}/${REPO_NAME}/releases/download/${tag}/${APP_TITLE}-${v}.apk`;
+};
+
 export const GROUP_IMAGE_NAMES = ['01.webp'];
 
 const mapImageKey = (groupLetter) => `map_img:${groupLetter}`;
