@@ -1,6 +1,6 @@
 import { RAW_CONTENT_BASE, REPO_NAME, GITHUB_USER, TREE_API_URL, NAV_STATE, rememberGroupImage } from './config.js';
 import { getDisplayName, debounce } from './utils.js';
-import { pushNavigationState, goToWood } from './navigation.js';
+import { resetNavigationTo, goToWood } from './navigation.js';
 import { setCurrentGroup, setCurrentFolder, setGlobalFileTree, globalFileTree, currentGroup } from './state.js';
 
 import { generateGroupSVG } from './svg-generator.js';
@@ -199,7 +199,7 @@ export async function initializeGroup(groupLetter) {
         groupSelectionScreen.style.display = 'none';
     }
 
-    pushNavigationState(NAV_STATE.WOOD_VIEW, { group: groupLetter });
+    resetNavigationTo(NAV_STATE.WOOD_VIEW, { group: groupLetter });
 
     showLoadingScreen(groupLetter);
     fetchGlobalTree();

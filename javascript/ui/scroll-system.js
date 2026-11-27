@@ -149,7 +149,17 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
     });
 
     // ==================== TOUCH ====================
+    // إصبعين = زوم بالأصابع مش سحب للقائمة: من غير ده أول touchmove كان بيتعمله preventDefault وبيمنع الزوم فوق القائمة
+    const cancelDragIfMultiTouch = (e) => {
+        if (e.touches.length < 2) return false;
+        dragState.active = false;
+        dragState.moved = false;
+        dragState.isHandleDrag = false;
+        return true;
+    };
+
     dragOverlay.addEventListener('touchstart', (e) => {
+        if (cancelDragIfMultiTouch(e)) return;
         dragState.active = true;
         dragState.startY = e.touches[0].clientY;
         dragState.startOffset = scrollOffset;
@@ -158,6 +168,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
     }, { passive: true });
 
     scrollBarHandle.addEventListener('touchstart', (e) => {
+        if (cancelDragIfMultiTouch(e)) return;
         dragState.active = true;
         dragState.startY = e.touches[0].clientY;
         dragState.startOffset = scrollOffset;
@@ -168,6 +179,7 @@ export function addScrollSystem(scrollContainerGroup, scrollContent, separatorGr
 
     onDocument('touchmove', (e) => {
         if (!dragState.active) return;
+        if (cancelDragIfMultiTouch(e)) return;
         const deltaY = e.touches[0].clientY - dragState.startY;
 
         if (Math.abs(deltaY) >= dragState.threshold) {

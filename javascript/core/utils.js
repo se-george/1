@@ -246,6 +246,9 @@ export function resetSvgZoom() {
     }
 }
 
+// الـ viewport العادي (الزوم بالأصابع شغال لحد 5x) — لازم يطابق الـ meta اللي في index.html
+const VIEWPORT_ZOOMABLE = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+
 // تصفير زوم المتصفح (للموبايل - Pinch Zoom)
 export function resetBrowserZoom() {
     const viewport = document.querySelector('meta[name=viewport]');
@@ -254,8 +257,15 @@ export function resetBrowserZoom() {
     viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
 
     requestAnimationFrame(() => {
-        viewport.content = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+        viewport.content = VIEWPORT_ZOOMABLE;
     });
+}
+
+// العنصر معروض فعلًا؟ (بيقرا الـ CSS الفعلي مش الـ style المباشر بس)
+export function isShown(el) {
+    if (!el) return false;
+    const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden';
 }
 
 // ------------------------------

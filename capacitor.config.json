@@ -5,5 +5,8 @@
   "server": {
     "url": "https://se-george.github.io/1/",
     "errorPath": "offline.html"
+  },
+  "android": {
+    "zoomEnabled": true
   }
 }

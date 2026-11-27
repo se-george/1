@@ -65,3 +65,27 @@ try {
 } catch (err) {
   console.warn(`⚠️ تخطيت الأيقونة (${err.message}) — هتظهر الأيقونة الافتراضية`);
 }
+
+// ---- 3) الزوم بالأصابع جوه الـ WebView (android.zoomEnabled — Capacitor 6+)
+//      من غيره الـ WebView بيتجاهل الـ pinch حتى لو الـ viewport meta بيسمح بالزوم.
+//      بنكتبه في capacitor.config.json وفي نسخته اللي جوه مشروع أندرويد (لو اتعمل sync قبل كده)،
+//      فيشتغل أيًا كان ترتيب الخطوات في الـ workflow. اختياري: لو فشل بنكمل والـ APK يتبني من غير زوم.
+try {
+  const configs = [
+    join(ROOT, 'capacitor.config.json'),
+    join(ROOT, 'android', 'app', 'src', 'main', 'assets', 'capacitor.config.json')
+  ];
+  let found = 0;
+  for (const file of configs) {
+    if (!existsSync(file)) continue;
+    found++;
+    const cfg = JSON.parse(readFileSync(file, 'utf8'));
+    if (cfg.android && cfg.android.zoomEnabled === true) continue;
+    cfg.android = { ...(cfg.android || {}), zoomEnabled: true };
+    writeFileSync(file, JSON.stringify(cfg, null, 2) + '\n');
+  }
+  if (!found) throw new Error('capacitor.config.json مش موجود');
+  console.log('✅ الزوم بالأصابع مفعّل (android.zoomEnabled)');
+} catch (err) {
+  console.warn(`⚠️ معرفتش أفعّل الزوم بالأصابع (${err.message})`);
+}

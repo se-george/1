@@ -3,8 +3,8 @@
 // ============================================
 
 import { NAV_STATE } from '../core/config.js';
-import { pushNavigationState, popNavigationState } from '../core/navigation.js';
-import { resetBrowserZoom, getThumbUrl, resetSvgZoom, rawFileUrl } from '../core/utils.js';
+import { pushNavigationState, popNavigationState, getCurrentNavigationState, registerBackLayer } from '../core/navigation.js';
+import { resetBrowserZoom, getThumbUrl, resetSvgZoom, rawFileUrl, isShown } from '../core/utils.js';
 import { isNativeApp, syncAndOpenFile } from '../features/sync-local.js';
 
 export let currentPreviewItem = null;
@@ -110,10 +110,13 @@ export async function showPDFPreview(item) {
     const oldImg = popup.querySelector('img[alt^="معاينة"]');
     if (oldImg) oldImg.remove();
 
-    pushNavigationState(NAV_STATE.PDF_VIEW, {
-        path: item.path,
-        isPreview: true
-    });
+    const topNav = getCurrentNavigationState();
+    if (!topNav || topNav.state !== NAV_STATE.PDF_VIEW) {
+        pushNavigationState(NAV_STATE.PDF_VIEW, {
+            path: item.path,
+            isPreview: true
+        });
+    }
 
     console.log('🔍 معاينة:', url);
 
@@ -221,7 +224,8 @@ export function closePDFPreview() {
     }
 
     currentPreviewItem = null;
-    popNavigationState();
+    const topAfter = getCurrentNavigationState();
+    if (topAfter && topAfter.state === NAV_STATE.PDF_VIEW) popNavigationState();
     console.log('🔒 تم إغلاق المعاينة');
 }
 
@@ -500,3 +504,23 @@ export function initPDFViewer() {
 
     console.log('✅ معالجات المعاينة والفتح جاهزة');
 }
+
+// ---------- زر الرجوع: يقفل النوافذ المفتوحة (من الأعلى للأدنى) ----------
+registerBackLayer({
+    id: 'open-method-popup',
+    priority: 90,
+    popup: true,
+    isOpen: () => isShown(document.getElementById('open-method-popup')),
+    close() {
+        closeOpenOptions();
+        currentPreviewItem = null;
+    }
+});
+
+registerBackLayer({
+    id: 'pdf-preview-popup',
+    priority: 80,
+    popup: true,
+    isOpen: () => isShown(document.getElementById('pdf-preview-popup')),
+    close: () => closePDFPreview()
+});

@@ -4,7 +4,7 @@
 
 import { RAW_CONTENT_BASE, NAV_STATE, SUBJECT_FOLDERS, REPO_NAME, HIDDEN_FOLDERS } from '../core/config.js';
 import { normalizeArabic, autoTranslate, getDisplayName, resetBrowserZoom, getThumbUrl } from '../core/utils.js';
-import { pushNavigationState, goToWood, getCurrentNavigationState, navigationHistory } from '../core/navigation.js';
+import { pushNavigationState, goToWood, getCurrentNavigationState, registerBackLayer } from '../core/navigation.js';
 import { smartOpen } from './pdf-viewer.js';
 import { globalFileTree, currentGroup, currentFolder, setCurrentFolder } from '../core/state.js';
 import { updateDynamicSizes, fetchGlobalTree, refreshGlobalTree } from '../core/group-loader.js';
@@ -59,6 +59,13 @@ const isImageFile = (path) => {
 };
 // ---------- معرض الصور (Lightbox) ----------
 let currentImageLightbox = null;
+
+export function closeImageLightbox() {
+    if (!currentImageLightbox) return false;
+    currentImageLightbox.remove();
+    currentImageLightbox = null;
+    return true;
+}
 
 function openImageLightbox(imageSrc, fileName) {
     if (currentImageLightbox) {
@@ -121,10 +128,7 @@ function openImageLightbox(imageSrc, fileName) {
         word-break: break-word;
     `;
 
-    const close = () => {
-        lightbox.remove();
-        currentImageLightbox = null;
-    };
+    const close = () => closeImageLightbox();
 
     closeBtn.onclick = close;
     lightbox.onclick = (e) => { if (e.target === lightbox) close(); };
@@ -249,9 +253,8 @@ export async function updateWoodInterface() {
 
     if (currentFolder === "") {
         backBtnText.textContent = "➡️ إلى الخريطة ➡️";
-        const currentState = getCurrentNavigationState();
-        if (!currentState || currentState.state !== NAV_STATE.WOOD_VIEW) {
-            navigationHistory.length = 0;
+        // المكدّس فاضي (مفيش حالة خالص) بس: نضمن إن فيه حالة WOOD_VIEW. من غير مسح لحالات تانية (الخريطة / المعاينة)
+        if (!getCurrentNavigationState()) {
             pushNavigationState(NAV_STATE.WOOD_VIEW, { folder: "" });
         }
     } else {
@@ -941,3 +944,28 @@ export function initWoodUI() {
     setupSearchInput(updateWoodInterface);
     setupEyeToggleSystem();
 }
+
+// ---------- زر الرجوع: مستوى واحد لفوق في شجرة الملفات + الصورة المكبّرة ----------
+export function goUpOneFolder() {
+    if (!currentFolder) return false;
+    const parts = currentFolder.split('/');
+    parts.pop();
+    setCurrentFolder(parts.join('/'));
+    updateWoodInterface();
+    return true;
+}
+
+registerBackLayer({
+    id: 'image-lightbox',
+    priority: 100,
+    popup: true,
+    isOpen: () => !!currentImageLightbox && currentImageLightbox.isConnected,
+    close: () => closeImageLightbox()
+});
+
+registerBackLayer({
+    id: 'folder',
+    priority: 40,
+    isOpen: () => currentFolder !== '',
+    close: () => goUpOneFolder()
+});
