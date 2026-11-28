@@ -3,7 +3,7 @@
 // =============================================
 // ✅ عند كل تحديث: غيّر رقم الإصدار في سطر CACHE_NAME بس (watch-cache.sh بيراقب السطر ده)
 const CACHE_FAMILY = 'semester-1';                  // ثابت — أي كاش بيبدأ بـ 'semester-1-' بتاعنا وبيتنضف تلقائيًا
-const CACHE_NAME = CACHE_FAMILY + '-cache-v35';
+const CACHE_NAME = CACHE_FAMILY + '-cache-v36';
 const CONTENT_CACHE = CACHE_FAMILY + '-content';
 
 const RAW_HOST = 'raw.githubusercontent.com';    
