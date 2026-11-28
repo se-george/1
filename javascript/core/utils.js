@@ -246,20 +246,76 @@ export function resetSvgZoom() {
     }
 }
 
-// الـ viewport العادي (الزوم بالأصابع شغال لحد 5x) — لازم يطابق الـ meta اللي في index.html
+// ---------- تصفير الزوم بالأصابع ----------
+// الـ viewport العادي (الزوم شغال لحد 5x) — لازم يطابق الـ meta اللي في index.html
 const VIEWPORT_ZOOMABLE = 'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes';
+const VIEWPORT_LOCKED = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+const LOCK_MIN_MS = 60;           // قفل أحدث من كده بيخلّص بتاعه لوحده، والعلاج التلقائي ما يلمسوش
+const PENDING_RESET_MS = 1500;    // تصفير مؤجّل: لو الصفحة لسه ظاهرة بعد المدة دي نصفّر عادي
 
-// تصفير زوم المتصفح (للموبايل - Pinch Zoom)
-export function resetBrowserZoom() {
-    const viewport = document.querySelector('meta[name=viewport]');
-    if (!viewport) return;
+let zoomLockedAt = 0;
+let zoomUnlockTimer = null;
+let zoomResetPending = false;
+let zoomPendingTimer = null;
 
-    viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+const viewportMeta = () => document.querySelector('meta[name=viewport]');
 
-    requestAnimationFrame(() => {
-        viewport.content = VIEWPORT_ZOOMABLE;
-    });
+// فك القفل: الزوم بالأصابع شغال تاني
+export function unlockBrowserZoom() {
+    clearTimeout(zoomUnlockTimer);
+    zoomUnlockTimer = null;
+    const viewport = viewportMeta();
+    if (viewport && viewport.content !== VIEWPORT_ZOOMABLE) viewport.content = VIEWPORT_ZOOMABLE;
 }
+
+// تصفير زوم المتصفح (للموبايل - Pinch Zoom): قفل لحظي (الزوم بيرجع 1x) ثم فك
+export function resetBrowserZoom() {
+    const viewport = viewportMeta();
+    if (!viewport) return;
+    zoomResetPending = false;
+    // الصفحة مخفية (المستخدم في برنامج تاني): ما نقفلش الـ viewport وهي مخفية، نصفّر أول ما يرجع
+    if (document.hidden) { zoomResetPending = true; return; }
+
+    viewport.content = VIEWPORT_LOCKED;
+    zoomLockedAt = performance.now();
+
+    // الفك بعد فريم واحد. ومعاه مؤقّت احتياطي: requestAnimationFrame بيقف لو الصفحة اتخفت قبل الفريم
+    // (فتح ملف في برنامج تاني بيحصل فورًا) وكان الزوم بيفضل مقفول لحد ما التطبيق يتقفل
+    clearTimeout(zoomUnlockTimer);
+    requestAnimationFrame(unlockBrowserZoom);
+    zoomUnlockTimer = setTimeout(unlockBrowserZoom, 120);
+}
+
+// تصفير مؤجّل للفتح في برنامج تاني (التطبيق): بدل ما نقفل الـ viewport والصفحة بتتخفى، نصفّر لحظة الرجوع
+export function resetBrowserZoomOnReturn() {
+    zoomResetPending = true;
+    clearTimeout(zoomPendingTimer);
+    zoomPendingTimer = setTimeout(flushPendingZoomReset, PENDING_RESET_MS);
+}
+
+function flushPendingZoomReset() {
+    clearTimeout(zoomPendingTimer);
+    if (zoomResetPending && !document.hidden) resetBrowserZoom();
+}
+
+// قفل فضل لأي سبب (الفك ضاع) ← نفكّه. القفل الطازة بنسيبه لحد ما يخلّص بتاعه
+function unlockIfStuck() {
+    const viewport = viewportMeta();
+    if (!viewport || viewport.content !== VIEWPORT_LOCKED) return;
+    if (performance.now() - zoomLockedAt < LOCK_MIN_MS) return;
+    unlockBrowserZoom();
+}
+
+// علاج تلقائي: أول ما المستخدم يرجع للتطبيق/الصفحة أو يلمس الشاشة
+function onBackVisible() {
+    if (document.hidden) return;
+    unlockIfStuck();
+    flushPendingZoomReset();
+}
+document.addEventListener('visibilitychange', onBackVisible);
+document.addEventListener('resume', onBackVisible);          // Capacitor
+window.addEventListener('pageshow', onBackVisible);
+window.addEventListener('touchstart', unlockIfStuck, { capture: true, passive: true });
 
 // العنصر معروض فعلًا؟ (بيقرا الـ CSS الفعلي مش الـ style المباشر بس)
 export function isShown(el) {

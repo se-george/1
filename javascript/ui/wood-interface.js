@@ -702,12 +702,12 @@ export async function updateWoodInterface() {
                         if (!longPressTriggered && touchDuration < 500) {
                             e.stopPropagation();
                             if (e.cancelable) e.preventDefault();
-                            resetBrowserZoom();
                             if (item.type === 'dir') {
+                                resetBrowserZoom();
                                 setCurrentFolder(item.path);
                                 updateWoodInterface();
                             } else {
-                                smartOpen(item);
+                                smartOpen(item);   // بيصفّر الزوم بنفسه (المتصفح: نافذة الفتح، التطبيق: لحظة الرجوع)
                             }
                         }
                     });
@@ -716,8 +716,8 @@ export async function updateWoodInterface() {
 
                     g.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        resetBrowserZoom();
                         if (item.type === 'dir') {
+                            resetBrowserZoom();
                             setCurrentFolder(item.path);
                             updateWoodInterface();
                         } else {

@@ -4,7 +4,7 @@
 
 import { NAV_STATE } from '../core/config.js';
 import { pushNavigationState, popNavigationState, getCurrentNavigationState, registerBackLayer } from '../core/navigation.js';
-import { resetBrowserZoom, getThumbUrl, resetSvgZoom, rawFileUrl, isShown } from '../core/utils.js';
+import { resetBrowserZoom, resetBrowserZoomOnReturn, getThumbUrl, resetSvgZoom, rawFileUrl, isShown } from '../core/utils.js';
 import { isNativeApp, syncAndOpenFile } from '../features/sync-local.js';
 
 export let currentPreviewItem = null;
@@ -401,7 +401,6 @@ let deviceOpenBusy = false;
 export async function openOnDevice(item) {
     if (!item || !item.path || deviceOpenBusy) return;
     deviceOpenBusy = true;
-    resetBrowserZoom();
     resetSvgZoom();
     showToast('⏳ جاري فتح الملف...', 0);
 
@@ -409,6 +408,9 @@ export async function openOnDevice(item) {
         const result = await syncAndOpenFile(item.path);
         if (result.ok) {
             hideToast();
+            // الملف اتفتح في برنامج تاني والصفحة بتتخفى دلوقتي: التصفير لحظة الرجوع. قفل الـ viewport وهي بتتخفى
+            // كان بيسيب الزوم معطّل لحد ما التطبيق يتقفل، ولا بنصفّر وإحنا مستنيين التنزيل عشان ما يتصادفش مع تبديل الشاشة
+            resetBrowserZoomOnReturn();
             if (typeof trackSvgOpen === 'function') trackSvgOpen(item.path);
         } else {
             showToast(result.message || 'تعذر فتح الملف', 6000);
